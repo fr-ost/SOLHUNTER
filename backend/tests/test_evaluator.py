@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from backend.database.engine import session_scope
 from backend.ingestion.dedupe import Deduplicator
@@ -110,7 +110,12 @@ async def test_end_to_end_discovery_to_candidate_score(monkeypatch) -> None:
         scores = (await s.execute(select(CandidateScore).where(CandidateScore.mint == fx.MINT))).scalars().all()
         assert len(scores) == 1 and scores[0].is_latest and scores[0].snapshot_id == snapshot_id
         assert scores[0].components and scores[0].filter_results["stages"]
-        assert scores[0].execution["estimates"][1]["size_usd"] == 250.0
+        surfaced = scores[0].status in {"candidate", "watchlist"}
+        if surfaced:
+            assert scores[0].execution["estimates"][1]["size_usd"] == 250.0
+        else:  # rejected rows are stored compactly to bound storage
+            assert scores[0].execution["reference_250"]["size_usd"] == 250.0
+            assert "metrics" not in scores[0].filter_results["stages"][0]
         assert scores[0].whale_signal is not None and scores[0].ml_is_experimental is True
         preds = (await s.execute(select(ModelPrediction).where(ModelPrediction.mint == fx.MINT))).scalars().all()
         assert len(preds) == 1 and preds[0].model_version == "heuristic-v0"
@@ -120,14 +125,24 @@ async def test_end_to_end_discovery_to_candidate_score(monkeypatch) -> None:
         assert len(positions) == 60
         history = (await s.execute(select(CandidateHistory).where(CandidateHistory.mint == fx.MINT))).scalars().all()
         assert history and history[0].from_status == "tracking"
-    # second evaluation marks the first as not latest
-    row2 = build_snapshot_row(state, "periodic", now + timedelta(seconds=60), sol_usd=150.0)
+    # a scheduled snapshot always persists a new latest score; a periodic one only when surfaced or changed
+    row2 = build_snapshot_row(state, "m10", now + timedelta(seconds=60), sol_usd=150.0)
     sid2 = await persist_snapshot(row2)
-    await evaluator.evaluate(state, "periodic", row2, sid2)
+    await evaluator.evaluate(state, "m10", row2, sid2)
     async with session_scope() as s:
         latest = (await s.execute(select(CandidateScore).where(CandidateScore.mint == fx.MINT, CandidateScore.is_latest.is_(True)))).scalars().all()
         assert len(latest) == 1 and latest[0].snapshot_id == sid2
-    assert evaluator.counters["evaluations"] == 2
+        total_before = await s.scalar(select(func.count()).select_from(CandidateScore))
+    row3 = build_snapshot_row(state, "periodic", now + timedelta(seconds=120), sol_usd=150.0)
+    sid3 = await persist_snapshot(row3)
+    _, ranking3 = await evaluator.evaluate(state, "periodic", row3, sid3)
+    async with session_scope() as s:
+        total_after = await s.scalar(select(func.count()).select_from(CandidateScore))
+        if ranking3.status in {"candidate", "watchlist"} or ranking3.status != latest[0].status:
+            assert total_after == total_before + 1
+        else:
+            assert total_after == total_before  # unchanged rejected token: no new row
+    assert evaluator.counters["evaluations"] == 3
 
 
 async def test_rug_creates_risk_events_and_blocks_enrichment(monkeypatch) -> None:

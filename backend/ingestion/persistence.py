@@ -137,19 +137,8 @@ class PersistenceWriter:
                 "raw": _json_safe(ev.raw) if store_raw else None,
             }
         )
-        self._buffers["wallet_tx"].append(
-            {
-                "wallet": ev.trader,
-                "signature": ev.signature,
-                "mint": ev.mint,
-                "direction": ev.side,
-                "sol_amount": ev.sol_amount,
-                "token_amount": ev.token_amount,
-                "block_time": ev.block_time,
-                "source": ev.source,
-                "raw": None,
-            }
-        )
+        # Note: wallet-level history is served from token_transactions (indexed by wallet); wallet_transactions
+        # is reserved for transfer data from enhanced transaction parsing, so trades are not duplicated.
 
     def add_migration(self, ev: MigrationEvent) -> None:
         self._buffers["trades"].append(

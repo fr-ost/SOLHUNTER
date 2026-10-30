@@ -260,13 +260,14 @@ class MLSettings(_Group):
 class RetentionSettings(_Group):
     model_config = SettingsConfigDict(env_prefix="RETENTION_", env_file=".env", extra="ignore")
 
-    raw_events_days: int = 7
-    transactions_days: int = 120
-    wallet_transactions_days: int = 180
+    raw_events_days: int = 3
+    transactions_days: int = 30
+    wallet_transactions_days: int = 30
     alerts_days: int = 180
     logs_days: int = 14
-    # 0 means never delete (snapshots and training samples are model training data)
-    snapshots_days: int = 0
+    # Only snapshots WITHOUT a training sample or candidate score are ever pruned (training data is kept).
+    # 0 disables pruning entirely.
+    snapshots_days: int = 45
 
 
 class Settings(BaseSettings):

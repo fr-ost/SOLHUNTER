@@ -69,34 +69,34 @@ const qs = (query?: Query): string => {
 };
 
 export class ApiClient {
-  constructor(private readonly settings: AppSettings) {}
+  constructor(private readonly config: AppSettings) {}
 
   get configured(): boolean {
-    return Boolean(this.settings.apiBaseUrl);
+    return Boolean(this.config.apiBaseUrl);
   }
 
   get baseUrl(): string {
-    return this.settings.apiBaseUrl;
+    return this.config.apiBaseUrl;
   }
 
   wsUrl(): string | null {
-    if (!this.settings.apiBaseUrl) return null;
-    const url = new URL(this.settings.apiBaseUrl);
+    if (!this.config.apiBaseUrl) return null;
+    const url = new URL(this.config.apiBaseUrl);
     url.protocol = url.protocol === "http:" ? "ws:" : "wss:";
     url.pathname = `${url.pathname.replace(/\/$/, "")}/ws`;
-    url.search = `?token=${encodeURIComponent(this.settings.apiKey)}`;
+    url.search = `?token=${encodeURIComponent(this.config.apiKey)}`;
     return url.toString();
   }
 
   async request<T>(method: string, path: string, body?: unknown, opts: { admin?: boolean; query?: Query } = {}): Promise<T> {
-    if (!this.settings.apiBaseUrl) throw new ApiError(0, "API base URL not configured");
-    const key = opts.admin && this.settings.adminKey ? this.settings.adminKey : this.settings.apiKey;
+    if (!this.config.apiBaseUrl) throw new ApiError(0, "API base URL not configured");
+    const key = opts.admin && this.config.adminKey ? this.config.adminKey : this.config.apiKey;
     const headers: Record<string, string> = { Accept: "application/json" };
     if (key) headers["X-API-Key"] = key;
     if (body !== undefined) headers["Content-Type"] = "application/json";
     let response: Response;
     try {
-      response = await fetch(`${this.settings.apiBaseUrl}${path}${qs(opts.query)}`, {
+      response = await fetch(`${this.config.apiBaseUrl}${path}${qs(opts.query)}`, {
         method,
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),

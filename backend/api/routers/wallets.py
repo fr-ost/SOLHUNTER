@@ -14,10 +14,10 @@ from backend.database.engine import get_db_session
 from backend.models import (
     SmartMoneyEvent,
     Token,
+    TokenTransaction,
     WalletProfile,
     WalletRelationship,
     WalletTokenPosition,
-    WalletTransaction,
     WhaleEvent,
 )
 
@@ -83,7 +83,11 @@ async def wallet_transactions(
 ) -> dict[str, Any]:
     rows = (
         await session.execute(
-            select(WalletTransaction).where(WalletTransaction.wallet == address).order_by(WalletTransaction.block_time.desc()).limit(limit)
+            select(TokenTransaction, Token.symbol)
+            .join(Token, Token.mint == TokenTransaction.mint, isouter=True)
+            .where(TokenTransaction.wallet == address)
+            .order_by(TokenTransaction.block_time.desc())
+            .limit(limit)
         )
-    ).scalars().all()
-    return {"items": rows_to_dicts(list(rows), exclude={"raw"})}
+    ).all()
+    return {"items": [{**orm_to_dict(tx, exclude={"raw"}), "symbol": sym} for tx, sym in rows]}

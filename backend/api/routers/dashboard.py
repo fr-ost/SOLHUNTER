@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import require_api_key
-from backend.api.serializers import rows_to_dicts
+from backend.api.serializers import orm_to_dict, rows_to_dicts
 from backend.database.engine import get_db_session
 from backend.models import Alert, CandidateScore, SmartMoneyEvent, Token, WhaleEvent
 from backend.services import status_service
@@ -43,8 +43,7 @@ async def dashboard(session: AsyncSession = Depends(get_db_session)) -> dict[str
         "live_counters": live,
         "top_candidates": [
             {
-                **{k: v for k, v in score.__dict__.items() if not k.startswith("_") and k not in {"components", "filter_results", "execution", "whale_summary"}},
-                "scored_at": score.scored_at.isoformat(),
+                **orm_to_dict(score, exclude={"filter_results", "execution", "whale_summary", "penalties"}),
                 "symbol": token.symbol,
                 "name": token.name,
                 "launch_time": token.launch_time.isoformat() if token.launch_time else None,

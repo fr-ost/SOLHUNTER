@@ -12,6 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from backend.config.logging import get_logger
 from backend.config.settings import get_settings
+from backend.services import keys
 from backend.services.redis_client import get_redis
 
 log = get_logger(__name__)
@@ -70,6 +71,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
         response = await call_next(request)
         response.headers["X-RateLimit-Remaining"] = str(int(remaining))
+        try:
+            await get_redis().hincrby(keys.daily_stats_key(), "api_requests", 1)
+        except Exception:  # noqa: BLE001
+            pass
         return response
 
 

@@ -64,7 +64,7 @@ async def test_tracker_discovers_tracks_and_persists_idempotently() -> None:
         assert await s.scalar(select(func.count()).select_from(Token)) == 1
         assert await s.scalar(select(func.count()).select_from(TokenLaunch)) == 1
         assert await s.scalar(select(func.count()).select_from(TokenTransaction)) == 6  # 5 buys + migration
-        assert await s.scalar(select(func.count()).select_from(WalletTransaction)) == 5
+        assert await s.scalar(select(func.count()).select_from(WalletTransaction)) == 0  # trades are not duplicated per wallet
         assert await s.scalar(select(func.count()).select_from(RawEvent)) == 2
         token = await s.get(Token, fx.MINT)
         assert token is not None and token.status == "tracking" and token.pool_kind == "pump-amm"

@@ -131,7 +131,8 @@ truncate them in production.
 * Hobby-sized Railway instances are enough initially: API (~150 MB RAM), scanner (~300–500 MB RAM
   depending on `SCANNER_MAX_TRACKED_TOKENS`), Postgres, Redis.
 * Postgres growth is dominated by `token_transactions` and `token_snapshots`. Retention defaults prune
-  transactions after 120 days and raw events after 7 days; snapshots and training samples are kept.
+  transactions after 30 days, raw events after 3 days and unlabelled/unscored snapshots after 45 days;
+  training samples, labelled snapshots and candidate scores are kept.
 * Helius free tier (1M credits/month) is budgeted via `HELIUS_DAILY_CREDIT_BUDGET` /
   `HELIUS_MONTHLY_CREDIT_BUDGET`; when exhausted the scanner continues with stream-derived estimates and
   marks data as unavailable.

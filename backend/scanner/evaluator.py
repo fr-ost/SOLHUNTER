@@ -280,6 +280,27 @@ class Evaluator:
             ranking.status = "watchlist"
             ranking.explanation.append(f"demoted to watchlist: {limit} candidates already promoted this hour")
 
+    @staticmethod
+    def _compact(result: PipelineResult, ctx: EvaluationContext, surfaced: bool) -> tuple[dict[str, Any], dict[str, Any] | None, dict[str, Any] | None]:
+        """Full detail for surfaced tokens; compact (reasons + scores only) for rejected ones to bound storage."""
+        filters = result.to_dict()
+        whales = ctx.whales.to_dict() if ctx.whales else None
+        execution = ctx.execution.to_dict() if ctx.execution else None
+        if surfaced:
+            return filters, whales, execution
+        filters["stages"] = [{k: v for k, v in st.items() if k != "metrics"} for st in filters["stages"]]
+        if whales is not None:
+            whales = {k: v for k, v in whales.items() if k not in {"activities"}}
+        if execution is not None:
+            ref = next((e for e in execution.get("estimates", []) if e.get("size_usd") == 250.0), None)
+            execution = {"venue": execution.get("venue"), "source": execution.get("source"), "reference_250": ref, "max_size_usd_within_slippage": execution.get("max_size_usd_within_slippage")}
+        return filters, whales, execution
+
+    def _should_persist_score(self, kind: str, prev_status: str, new_status: str, result: PipelineResult) -> bool:
+        if kind != "periodic":
+            return True  # scheduled m1/m3/m5/m10/m15 snapshots are the designed training/decision points
+        return new_status in {"candidate", "watchlist"} or new_status != prev_status or result.hard_fail
+
     async def _persist(self, ctx: EvaluationContext, result: PipelineResult, ranking: RankingResult, session: AsyncSession) -> int:
         state = ctx.state
         now = ctx.now
@@ -291,8 +312,20 @@ class Evaluator:
         self.counters[{"candidate": "candidates", "watchlist": "watchlist", "rejected": "rejected"}.get(new_status, "rejected")] += 1
         if new_status == "candidate" and prev_status != "candidate":
             self._recent_candidates.append(now)
-        await session.execute(update(CandidateScore).where(CandidateScore.mint == state.mint, CandidateScore.is_latest.is_(True)).values(is_latest=False))
+        kind = str(ctx.snapshot.get("snapshot_kind") or "periodic")
+        persist_score = self._should_persist_score(kind, prev_status, new_status, result)
         p: Prediction | None = ctx.prediction
+        if not persist_score:
+            # Keep the in-memory decision, counters and events, but skip the (large) score/prediction rows.
+            state.status = new_status
+            state.status_reason = "; ".join(result.rejection_reasons[:3])[:500] if result.rejected else f"score {ranking.overall_score:.0f} ({ranking.confidence})"
+            state.last_evaluation = {"score": ranking.overall_score, "status": new_status, "confidence": ranking.confidence, "at": now.isoformat(), "whale_signal": ctx.whales.primary_signal if ctx.whales else None, "score_id": (state.last_evaluation or {}).get("score_id")}
+            self.persistence.add_token(state)
+            await self._risk_events(ctx, result, session)
+            return int(state.last_evaluation.get("score_id") or 0)
+        surfaced = new_status in {"candidate", "watchlist"}
+        filters_json, whales_json, execution_json = self._compact(result, ctx, surfaced)
+        await session.execute(update(CandidateScore).where(CandidateScore.mint == state.mint, CandidateScore.is_latest.is_(True)).values(is_latest=False))
         score = CandidateScore(
             mint=state.mint,
             snapshot_id=ctx.snapshot_id,
@@ -302,11 +335,11 @@ class Evaluator:
             confidence=ranking.confidence,
             components=ranking.components,
             penalties=ranking.penalties,
-            filter_results=result.to_dict(),
+            filter_results=filters_json,
             rejection_reasons=result.rejection_reasons + result.quality_failures,
             hard_fail=result.hard_fail,
             whale_signal=ctx.whales.primary_signal if ctx.whales else None,
-            whale_summary=ctx.whales.to_dict() if ctx.whales else None,
+            whale_summary=whales_json,
             rug_risk=p.rug_risk if p else None,
             breakout_p10=p.p10 if p else None,
             breakout_p15=p.p15 if p else None,
@@ -314,7 +347,7 @@ class Evaluator:
             expected_return_pct=p.expected_return_pct if p else None,
             ml_is_experimental=p.is_experimental if p else True,
             model_version=p.model_version if p else None,
-            execution=ctx.execution.to_dict() if ctx.execution else None,
+            execution=execution_json,
             explanation=ranking.explanation,
             is_latest=True,
         )

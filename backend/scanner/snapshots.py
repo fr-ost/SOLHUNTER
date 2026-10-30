@@ -33,11 +33,25 @@ def due_snapshot_kind(state: TokenState, now: datetime) -> str | None:
                 continue
             return kind
     if state.next_periodic_at is None:
-        state.next_periodic_at = now + timedelta(seconds=get_settings().scanner.periodic_snapshot_interval_seconds)
+        state.next_periodic_at = now + timedelta(seconds=periodic_interval_seconds(state, now))
         return None
     if now >= state.next_periodic_at and age >= 60:
+        # Idle, unsurfaced tokens are not re-snapshotted: nothing changed and the row would be waste.
+        last_snapshot_at = state.flags.get("last_snapshot_at")
+        idle = state.last_trade_at is not None and last_snapshot_at is not None and state.last_trade_at <= last_snapshot_at
+        if idle and state.status not in {"candidate", "watchlist"}:
+            state.next_periodic_at = now + timedelta(seconds=periodic_interval_seconds(state, now))
+            return None
         return "periodic"
     return None
+
+
+def periodic_interval_seconds(state: TokenState, now: datetime) -> int:
+    """Every ``periodic_snapshot_interval_seconds`` for the first 20 minutes, then every 5 minutes."""
+    base = get_settings().scanner.periodic_snapshot_interval_seconds
+    if state.age_at(now) < 1200 or state.status in {"candidate", "watchlist"}:
+        return base
+    return max(base, 300)
 
 
 async def refresh_pair(state: TokenState, dex: DexScreenerClient, now: datetime, force: bool = False) -> PairData | None:
@@ -197,8 +211,9 @@ class SnapshotScheduler:
                 row = build_snapshot_row(state, kind, now, sol_usd)
                 snapshot_id = await persist_snapshot(row)
                 state.snapshots_done.add(kind)
+                state.flags["last_snapshot_at"] = now
                 if kind == "periodic":
-                    state.next_periodic_at = now + timedelta(seconds=get_settings().scanner.periodic_snapshot_interval_seconds)
+                    state.next_periodic_at = now + timedelta(seconds=periodic_interval_seconds(state, now))
                 taken += 1
                 self.snapshots_taken += 1
                 if self.on_snapshot is not None:

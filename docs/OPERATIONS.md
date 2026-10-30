@@ -35,8 +35,9 @@ that condition carry lower confidence.
   `FILTER_*`/`RANK_*` via `PUT /api/v1/settings` (changes apply within ~60 s).
 * **Retraining** – automatic daily when `training_samples ≥ ML_MIN_TRAINING_SAMPLES`; manual:
   `railway run --service gemfinder-scanner python -m backend.ml.train`.
-* **Retention** – hourly job prunes raw events (7 d), transactions (120 d), wallet transactions (180 d),
-  alerts (180 d). Snapshots/training samples/candidate scores are kept.
+* **Retention** – hourly job prunes raw events (3 d), transactions (30 d), wallet transactions (30 d),
+  alerts (180 d), unlabelled & unscored snapshots (45 d). Training samples, labelled snapshots and
+  candidate scores are kept.
 
 ## Redeploys
 

@@ -60,5 +60,5 @@ All runtime thresholds in the `FILTER_*`, `RANK_*`, `WHALE_*`, `SCANNER_*`, `TEL
 | `EXEC_*` | both | `100,250,500`, fees | Execution analyzer sizes and fee assumptions. |
 | `RISK_*` | both | 1% / 2.5% / 2 / 6% / 10,15,20 | Paper-trading reference risk settings. |
 | `ML_*` | scanner | see settings | Minimum samples, retrain interval, experimental threshold, execution cost for labels. |
-| `RETENTION_*` | scanner | 7 / 120 / 180 / 180 / 0 | Retention days (snapshots `0` = keep forever). |
+| `RETENTION_*` | scanner | 3 / 30 / 30 / 180 / 45 | Retention days: raw events, transactions, wallet transactions, alerts, unlabelled snapshots (labelled/scored snapshots and training samples are never pruned). |
 | `COST_RAILWAY_ESTIMATE_USD_MONTH` / `COST_HELIUS_PLAN_USD_MONTH` | api | `20` / `0` | Display-only cost assumptions. |

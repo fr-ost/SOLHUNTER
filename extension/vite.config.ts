@@ -17,6 +17,7 @@ export default defineConfig({
         entryFileNames: (chunk) => (chunk.name === "background" ? "background.js" : "assets/[name]-[hash].js"),
         chunkFileNames: "assets/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash][extname]",
+        manualChunks: { charts: ["recharts"] },
       },
     },
   },
