@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1.7
+# GemFinder AI - scanner worker image (persistent background process; never a cron job)
+FROM python:3.12-slim AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgomp1 curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend ./backend
+COPY migrations ./migrations
+COPY alembic.ini pyproject.toml ./
+COPY scripts ./scripts
+RUN chmod +x scripts/*.sh \
+    && useradd --create-home --uid 10001 appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
+ENV SERVICE_ROLE=scanner \
+    SCANNER_HTTP_HEALTH_PORT=8081
+EXPOSE 8081
+
+# Graceful shutdown: the worker handles SIGTERM, flushes batches and releases its leader lock.
+STOPSIGNAL SIGTERM
+
+CMD ["./scripts/start_scanner.sh"]

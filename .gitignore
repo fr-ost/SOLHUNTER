@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+build/
+dist/
+*.log
+
+# Environment / secrets (never commit)
+.env
+.env.*
+!.env.example
+
+# ML artifacts (stored in the database in production)
+backend/ml/artifacts/
+*.ubj
+*.joblib
+
+# Node / extension
+extension/node_modules/
+extension/dist/
+extension/.vite/
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp

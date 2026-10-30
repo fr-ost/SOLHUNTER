@@ -1,0 +1,1 @@
+"""GemFinder AI - notifications package."""
