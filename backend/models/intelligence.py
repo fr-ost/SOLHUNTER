@@ -33,7 +33,7 @@ class WhaleEvent(Base):
     wallet_confidence: Mapped[float | None] = mapped_column(Float)
     corroborated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    details: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class SmartMoneyEvent(Base):
@@ -54,7 +54,7 @@ class SmartMoneyEvent(Base):
     wallet_win_rate: Mapped[float | None] = mapped_column(Float)
     corroborated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    details: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class TokenRiskEvent(Base):
@@ -66,7 +66,7 @@ class TokenRiskEvent(Base):
     risk_type: Mapped[str] = mapped_column(String(48), nullable=False, index=True)
     severity: Mapped[str] = mapped_column(String(16), nullable=False)  # info / warning / critical
     title: Mapped[str] = mapped_column(String(256), nullable=False)
-    details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    details: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
     dedupe_key: Mapped[str | None] = mapped_column(String(256), unique=True)
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     alerted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

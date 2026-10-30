@@ -49,10 +49,23 @@ async def _worker_with_evaluator(monkeypatch) -> tuple[ScannerWorker, Evaluator]
     worker.tracker = TokenTracker(worker.persistence, FakePumpPortal(), Deduplicator())  # type: ignore[arg-type]
     evaluator = Evaluator(worker)
     worker.evaluator = evaluator
+
+    async def fake_holder_distribution(mint, infra_owners=None, creator=None, max_das_pages=3):  # noqa: ANN001
+        return _fake_holders(mint, infra_owners, creator)
+
+    monkeypatch.setattr(evaluator.helius, "holder_distribution", fake_holder_distribution)  # never hit the network in tests
     return worker, evaluator
 
 
-async def _simulate_token(worker: ScannerWorker, now: datetime, n_buyers: int = 30) -> None:
+def _fake_holders(mint: str, infra_owners=None, creator=None):  # noqa: ANN001
+    from backend.providers.helius import HolderDistribution, TokenHolder
+
+    holders = [TokenHolder("curve", fx.CURVE, 600_000_000.0, True, "pool/curve"), TokenHolder("dev", creator or fx.CREATOR, 30_000_000.0, label="creator")]
+    holders += [TokenHolder(f"acc{i}", f"Buyer{i:03d}" + "b" * 33, 8_000_000.0) for i in range(18)]
+    return HolderDistribution(mint=mint, total_supply=1_000_000_000.0, holder_count=55, holder_count_complete=True, top_holders=holders, circulating_excluding_infra=400_000_000.0, captured_at=datetime.now(UTC), source="test")
+
+
+async def _simulate_token(worker: ScannerWorker, now: datetime, n_buyers: int = 60) -> None:
     tracker = worker.tracker
     assert tracker is not None
     await tracker.handle_raw(fx.create_event())
@@ -60,9 +73,10 @@ async def _simulate_token(worker: ScannerWorker, now: datetime, n_buyers: int = 
     state.launch_time = now - timedelta(seconds=320)
     v_sol, v_tok = 31.8, 1_014_000_000.0
     for i in range(n_buyers):
-        v_sol += 1.1
-        v_tok -= 20_000_000
-        raw = fx.trade_event(f"t{i}", f"Buyer{i:03d}" + "b" * 33, "buy", sol=1.1, tokens=20_000_000, v_sol=v_sol, v_tokens=v_tok)
+        size = 0.4 + 0.2 * (i % 3)
+        v_sol += size
+        v_tok -= size * 20_000_000
+        raw = fx.trade_event(f"t{i}", f"Buyer{i:03d}" + "b" * 33, "buy", sol=size, tokens=size * 20_000_000, v_sol=v_sol, v_tokens=v_tok)
         raw["timestamp"] = int((state.launch_time + timedelta(seconds=15 + i * 9)).timestamp())
         await tracker.handle_raw(raw)
     for i in range(2):
@@ -87,6 +101,8 @@ async def test_end_to_end_discovery_to_candidate_score(monkeypatch) -> None:
     evaluator.hooks.append(hook)
     result, ranking = await evaluator.evaluate(state, "m5", row, snapshot_id)
     assert not result.hard_fail, result.rejection_reasons
+    assert not result.rejected, result.rejection_reasons
+    assert evaluator.counters["enrichments"] == 1 and state.holders is not None and state.holders.source == "test"
     assert hook_calls == [ranking.status]
     await worker.persistence.flush()
     await evaluator._flush_positions()  # noqa: SLF001
@@ -101,7 +117,7 @@ async def test_end_to_end_discovery_to_candidate_score(monkeypatch) -> None:
         snap = await s.get(TokenSnapshot, snapshot_id)
         assert snap is not None and snap.features and "momentum_5m_pct" in snap.features
         positions = (await s.execute(select(WalletTokenPosition).where(WalletTokenPosition.mint == fx.MINT))).scalars().all()
-        assert len(positions) == 30
+        assert len(positions) == 60
         history = (await s.execute(select(CandidateHistory).where(CandidateHistory.mint == fx.MINT))).scalars().all()
         assert history and history[0].from_status == "tracking"
     # second evaluation marks the first as not latest

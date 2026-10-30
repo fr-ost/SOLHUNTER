@@ -28,7 +28,7 @@ class PaperTrade(Base, TimestampMixin):
     entry_market_cap_usd: Mapped[float | None] = mapped_column(Float)
     position_size_usd: Mapped[float] = mapped_column(Float, nullable=False)
     planned_stop_pct: Mapped[float | None] = mapped_column(Float)
-    planned_targets_pct: Mapped[list[float] | None] = mapped_column(JSONB)
+    planned_targets_pct: Mapped[list[float] | None] = mapped_column(JSONB(none_as_null=True))
     exit_price_usd: Mapped[float | None] = mapped_column(Float)
     exit_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     fees_usd: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
@@ -42,7 +42,7 @@ class PaperTrade(Base, TimestampMixin):
     candidate_type: Mapped[str | None] = mapped_column(String(48))
     model_version: Mapped[str | None] = mapped_column(String(64))
     gpt_recommendation: Mapped[str | None] = mapped_column(String(32))
-    extra: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    extra: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class TradeJournalEntry(Base, TimestampMixin):
@@ -54,4 +54,4 @@ class TradeJournalEntry(Base, TimestampMixin):
     entry_type: Mapped[str] = mapped_column(String(24), default="note", nullable=False)
     title: Mapped[str | None] = mapped_column(String(256))
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    tags: Mapped[list[str] | None] = mapped_column(JSONB)
+    tags: Mapped[list[str] | None] = mapped_column(JSONB(none_as_null=True))

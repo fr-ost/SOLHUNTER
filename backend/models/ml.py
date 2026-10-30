@@ -34,8 +34,8 @@ class ModelVersion(Base):
     training_samples: Mapped[int] = mapped_column(Integer, nullable=False)
     positive_samples: Mapped[int | None] = mapped_column(Integer)
     feature_names: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
-    params: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    metrics: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    params: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
+    metrics: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
     artifact: Mapped[bytes | None] = mapped_column(LargeBinary)
     artifact_format: Mapped[str] = mapped_column(String(16), default="joblib", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -62,7 +62,7 @@ class ModelPrediction(Base):
     expected_time_to_target_s: Mapped[float | None] = mapped_column(Float)
     p_stop_loss: Mapped[float | None] = mapped_column(Float)
     confidence: Mapped[float | None] = mapped_column(Float)
-    uncertainty: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    uncertainty: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class TrainingSample(Base):

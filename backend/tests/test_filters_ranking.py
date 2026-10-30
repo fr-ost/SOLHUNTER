@@ -28,16 +28,17 @@ def _trade(state: TokenState, sig: str, trader: str, side: str, sol: float, ts: 
     state.apply_trade(ev.model_copy(update={"block_time": ts, "received_at": ts}))
 
 
-def healthy_state(now: datetime, n_buyers: int = 25, age: int = 320) -> TokenState:
+def healthy_state(now: datetime, n_buyers: int = 60, age: int = 320) -> TokenState:
     launch = now - timedelta(seconds=age)
     state = TokenState(fx.MINT, launch)
     create = normalize_pumpportal(fx.create_event())
     state.apply_create(create.model_copy(update={"block_time": launch, "received_at": launch}))  # type: ignore[union-attr]
     v_sol, v_tok = 31.8, 1_014_000_000.0
     for i in range(n_buyers):
-        v_sol += 1.3
-        v_tok -= 25_000_000
-        _trade(state, f"b{i}", f"Buyer{i:03d}" + "b" * 33, "buy", 1.3, launch + timedelta(seconds=15 + i * (age - 30) / n_buyers), v_sol, v_tok)
+        size = 0.4 + 0.2 * (i % 3)  # 0.4 / 0.6 / 0.8 SOL - varied sizes, no dominant holder
+        v_sol += size
+        v_tok -= size * 20_000_000
+        _trade(state, f"b{i}", f"Buyer{i:03d}" + "b" * 33, "buy", size, launch + timedelta(seconds=15 + i * (age - 30) / n_buyers), v_sol, v_tok)
     # a couple of modest sells prove sellability
     for i in range(2):
         v_sol -= 0.2

@@ -37,8 +37,8 @@ class WalletProfile(Base, TimestampMixin):
     total_sol_sold: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     first_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
-    stats: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    classification_reasons: Mapped[list[str] | None] = mapped_column(JSONB)
+    stats: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
+    classification_reasons: Mapped[list[str] | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class WalletTransaction(Base):
@@ -59,7 +59,7 @@ class WalletTransaction(Base):
     block_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     counterparty: Mapped[str | None] = mapped_column(String(64))
     source: Mapped[str] = mapped_column(String(32), nullable=False)
-    raw: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    raw: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class WalletTokenPosition(Base, TimestampMixin):
@@ -106,7 +106,7 @@ class WalletRelationship(Base, TimestampMixin):
     wallet_b: Mapped[str] = mapped_column(String(64), nullable=False)
     relationship_type: Mapped[str] = mapped_column(String(32), nullable=False)
     confidence: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
-    evidence: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    evidence: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
     observations: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     first_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

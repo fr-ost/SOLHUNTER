@@ -13,12 +13,14 @@ from __future__ import annotations
 import asyncio
 from collections import deque
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.ai.analyst import AnalystQueue, GptAnalyst
+from backend.ai.context import build_analyst_context
 from backend.config.logging import get_logger
 from backend.database.engine import session_scope
 from backend.execution.analyzer import analyze_execution
@@ -39,7 +41,16 @@ from backend.intelligence.relationships import (
 from backend.intelligence.wallets import PositionUpdater, TradeInput, WalletProfiler, mark_token_rugged
 from backend.ml.features import build_features, features_json_safe
 from backend.ml.predictor import HeuristicPredictor, Prediction, PredictorProtocol
-from backend.models import CandidateHistory, CandidateScore, ModelPrediction, TokenSnapshot, WhaleSignal
+from backend.ml.scheduler import MLScheduler
+from backend.models import (
+    CandidateHistory,
+    CandidateScore,
+    GptAnalysis,
+    ModelPrediction,
+    TokenSnapshot,
+    WhaleSignal,
+)
+from backend.notifications.alerts import AlertService
 from backend.providers.base import BudgetExceededError, DataUnavailable, ProviderError
 from backend.ranking.ranker import Ranker, RankingResult
 from backend.scanner.state import TokenState
@@ -65,11 +76,15 @@ class Evaluator:
         self.positions = PositionUpdater()
         self.whale_engine = WhaleEngine()
         self.predictor: PredictorProtocol = HeuristicPredictor()
+        self.ml_scheduler = MLScheduler(self)
         self.ranker = Ranker()
         self.cheap = cheap_pipeline()
         self.full = full_pipeline()
         self.hooks: list[DecisionHook] = []
-        self.counters: dict[str, int] = {"evaluations": 0, "enrichments": 0, "candidates": 0, "watchlist": 0, "rejected": 0, "hard_fails": 0, "errors": 0}
+        self.analyst = GptAnalyst()
+        self.analyst_queue = AnalystQueue(self.analyst, on_result=self.on_gpt_result)
+        self.alerts = AlertService()
+        self.counters: dict[str, int] = {"evaluations": 0, "enrichments": 0, "candidates": 0, "watchlist": 0, "rejected": 0, "hard_fails": 0, "errors": 0, "gpt_enqueued": 0, "alerts_sent": 0}
         self._recent_candidates: deque[datetime] = deque(maxlen=100)
         self._stop = asyncio.Event()
         if worker.tracker is not None:
@@ -77,13 +92,32 @@ class Evaluator:
 
     # ------------------------------------------------------------------ wiring
     def stats(self) -> dict[str, Any]:
-        return {**self.counters, "positions_pending": self.positions.pending, "predictor": getattr(self.predictor, "version", "unknown")}
+        return {
+            **self.counters,
+            "positions_pending": self.positions.pending,
+            "predictor": getattr(self.predictor, "version", "unknown"),
+            "predictor_experimental": getattr(self.predictor, "is_experimental", True),
+            "ml": self.ml_scheduler.stats(),
+            "gpt": {**self.analyst.status(), "processed": self.analyst_queue.processed, "dead_lettered": self.analyst_queue.failed},
+            "alerts": self.alerts.stats(),
+        }
 
     def background_tasks(self) -> list[asyncio.Task[Any]]:
-        return [asyncio.create_task(self._positions_loop(), name="positions")]
+        return [
+            asyncio.create_task(self._positions_loop(), name="positions"),
+            asyncio.create_task(self.ml_scheduler.run(), name="ml-scheduler"),
+            asyncio.create_task(self._analyst_startup_then_run(), name="gpt-queue"),
+        ]
+
+    async def _analyst_startup_then_run(self) -> None:
+        await self.analyst.verify_model()
+        await self.analyst.tracker.publish()
+        await self.analyst_queue.run()
 
     async def shutdown(self) -> None:
         self._stop.set()
+        await self.ml_scheduler.stop()
+        await self.analyst_queue.stop()
         try:
             await self._flush_positions()
         except Exception:  # noqa: BLE001
@@ -146,10 +180,12 @@ class Evaluator:
             ctx.features = build_features(ctx)
             ctx.prediction = self.predictor.predict(ctx.features)
             result = self.full.run(ctx)
-            ranking = self.ranker.rank(ctx, result)
+            gpt_prev = state.flags.get("gpt") or {}
+            ranking = self.ranker.rank(ctx, result, gpt_recommendation=gpt_prev.get("recommendation"), gpt_probability=gpt_prev.get("p10"))
             self._apply_rate_limit(ranking, now)
-            await self._persist(ctx, result, ranking, session)
+            score_id = await self._persist(ctx, result, ranking, session)
         await self._publish(ctx, result, ranking)
+        await self._decide_gpt_and_alerts(ctx, result, ranking, score_id)
         for hook in self.hooks:
             try:
                 await hook(ctx, result, ranking, snapshot_id)
@@ -363,6 +399,77 @@ class Evaluator:
                 }
             )
             state.flags.setdefault("risk_events", []).append({"type": risk_type, "severity": severity, "title": title, "at": now.isoformat()})
+
+    # ------------------------------------------------------------------ GPT analyst + alerts
+    def _gpt_wanted(self, ctx: EvaluationContext, result: PipelineResult, ranking: RankingResult) -> bool:
+        state = ctx.state
+        cfg = self.settings
+        if not self.analyst.enabled or result.rejected or result.hard_fail:
+            return False
+        if ranking.overall_score < cfg.ranking.gpt_min_score or not result.candidate_eligible:
+            return False
+        if state.gpt_analyses >= cfg.ai.max_analyses_per_token:
+            return False
+        last = state.flags.get("gpt_at")
+        if last and (ctx.now - datetime.fromisoformat(last)).total_seconds() < cfg.ai.cache_ttl_seconds:
+            return False
+        return True
+
+    async def _decide_gpt_and_alerts(self, ctx: EvaluationContext, result: PipelineResult, ranking: RankingResult, score_id: int) -> None:
+        state = ctx.state
+        # urgent warnings for tokens we surfaced before
+        for ev in list(state.flags.get("risk_events", []))[-5:]:
+            if ev.get("alerted"):
+                continue
+            ev["alerted"] = True
+            if ev.get("severity") == "critical" or ev.get("type") in {"insider_selling", "whale_distribution"}:
+                outcome = await self.alerts.send_risk_alert(state, ev["type"], ev["title"], {"snapshot_kind": ctx.snapshot.get("snapshot_kind"), "score": ranking.overall_score})
+                if outcome.startswith("sent"):
+                    self.counters["alerts_sent"] += 1
+        if state.alerted and ranking.status == "rejected" and state.flags.get("last_alert_status") in {"candidate", "watchlist"}:
+            await self.alerts.send_risk_alert(state, "risk_escalation", "Previously alerted token no longer passes safety filters: " + "; ".join(result.rejection_reasons[:2]), {"from_status": state.flags.get("last_alert_status"), "to_status": "rejected"})
+            state.flags["last_alert_status"] = "rejected"
+        if ranking.status not in {"candidate", "watchlist"}:
+            return
+        if self._gpt_wanted(ctx, result, ranking):
+            context = build_analyst_context(ctx, result, ranking)
+            if await self.analyst_queue.enqueue(state.mint, context, score_id, ctx.snapshot_id):
+                state.gpt_analyses += 1
+                state.flags["gpt_at"] = ctx.now.isoformat()
+                state.flags["alert_pending"] = {"score_id": score_id, "snapshot": {k: v for k, v in ctx.snapshot.items() if k not in {"features", "data_sources"}}}
+                self.counters["gpt_enqueued"] += 1
+                return  # the candidate alert is sent once the GPT verdict is in (or on failure)
+        await self._send_candidate_alert(state, score_id, ctx.snapshot, None)
+
+    async def _send_candidate_alert(self, state: TokenState, score_id: int, snapshot: dict[str, Any], gpt: GptAnalysis | None) -> None:
+        async with session_scope() as session:
+            score = await session.get(CandidateScore, score_id)
+            if score is None:
+                return
+            outcome = await self.alerts.send_candidate_alert(state, score, snapshot, gpt)
+            if outcome.startswith("sent"):
+                score.alerted = True
+                state.flags["last_alert_status"] = score.status
+                self.counters["alerts_sent"] += 1
+                session.add(CandidateHistory(mint=state.mint, event="alerted", to_status=score.status, score=score.overall_score, reason=outcome, details={"gpt": gpt.recommendation if gpt else None}, occurred_at=datetime.now(UTC)))
+
+    async def on_gpt_result(self, mint: str, row: GptAnalysis) -> None:
+        state = self.worker.tracker.states.get(mint) if self.worker.tracker else None
+        if state is None:
+            return
+        if row.status in {"ok", "cached"} and row.analysis:
+            p = (row.analysis.get("probability_estimates") or {})
+            state.flags["gpt"] = {"recommendation": row.recommendation, "p10": p.get("p_plus_10_pct"), "analysis_id": row.id, "at": row.created_at.isoformat()}
+            if row.recommendation in {"REJECT", "HIGH_RISK"}:
+                async with session_scope() as session:
+                    session.add(CandidateHistory(mint=mint, event="gpt_downgrade", from_status=state.status, to_status="watchlist", reason=row.recommendation, details={"analysis_id": row.id}, occurred_at=datetime.now(UTC)))
+                if state.status == "candidate":
+                    state.status = "watchlist"
+                    state.status_reason = f"GPT verdict {row.recommendation}"
+                    self.persistence.add_token(state)
+        pending = state.flags.pop("alert_pending", None)
+        if pending:
+            await self._send_candidate_alert(state, pending["score_id"], pending["snapshot"], row if row.status in {"ok", "cached"} else None)
 
     async def _publish(self, ctx: EvaluationContext, result: PipelineResult, ranking: RankingResult) -> None:
         state = ctx.state

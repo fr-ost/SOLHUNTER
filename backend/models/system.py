@@ -23,7 +23,7 @@ class Alert(Base):
     dedupe_key: Mapped[str] = mapped_column(String(256), nullable=False, unique=True)
     title: Mapped[str] = mapped_column(String(256), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
-    payload: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    payload: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
     status: Mapped[str] = mapped_column(String(16), nullable=False)  # sent / failed / suppressed / pending
     error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -40,7 +40,7 @@ class ProviderStatus(Base):
     last_error_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_error: Mapped[str | None] = mapped_column(Text)
     reconnect_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    details: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
@@ -88,7 +88,7 @@ class WorkerHeartbeat(Base):
     last_heartbeat_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     is_leader: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False)
-    stats: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    stats: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class ApplicationSetting(Base):

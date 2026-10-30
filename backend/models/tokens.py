@@ -42,7 +42,7 @@ class Token(Base, TimestampMixin):
     last_activity_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     tracking_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     total_supply: Mapped[float | None] = mapped_column(Float)
-    metadata_json: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB)
+    metadata_json: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB(none_as_null=True))
 
     launches: Mapped[list[TokenLaunch]] = relationship(back_populates="token", cascade="all, delete-orphan")
     pools: Mapped[list[TokenPool]] = relationship(back_populates="token", cascade="all, delete-orphan")
@@ -62,7 +62,7 @@ class TokenLaunch(Base):
     v_tokens_in_curve: Mapped[float | None] = mapped_column(Float)
     market_cap_sol: Mapped[float | None] = mapped_column(Float)
     source: Mapped[str] = mapped_column(String(32), default="pumpportal", nullable=False)
-    raw: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    raw: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
     token: Mapped[Token] = relationship(back_populates="launches")
 
@@ -88,7 +88,7 @@ class TokenPool(Base, TimestampMixin):
     last_refreshed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     is_primary: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     source: Mapped[str] = mapped_column(String(32), default="dexscreener", nullable=False)
-    raw: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    raw: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
     token: Mapped[Token] = relationship(back_populates="pools")
 
@@ -147,9 +147,9 @@ class TokenSnapshot(Base):
     momentum_15m_pct: Mapped[float | None] = mapped_column(Float)
     smart_money_buyers: Mapped[int | None] = mapped_column(Integer)
     whale_net_flow_sol_5m: Mapped[float | None] = mapped_column(Float)
-    data_sources: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    data_quality: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    features: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    data_sources: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
+    data_quality: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
+    features: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class TokenTransaction(Base):
@@ -178,7 +178,7 @@ class TokenTransaction(Base):
     market_cap_sol: Mapped[float | None] = mapped_column(Float)
     new_token_balance: Mapped[float | None] = mapped_column(Float)
     source: Mapped[str] = mapped_column(String(32), default="pumpportal", nullable=False)
-    raw: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    raw: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class HolderSnapshot(Base):
@@ -195,6 +195,6 @@ class HolderSnapshot(Base):
     top20_pct: Mapped[float | None] = mapped_column(Float)
     dev_holding_pct: Mapped[float | None] = mapped_column(Float)
     infra_excluded_pct: Mapped[float | None] = mapped_column(Float)
-    top_holders: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB)
+    top_holders: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB(none_as_null=True))
     source: Mapped[str] = mapped_column(String(32), nullable=False)
     is_complete: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
