@@ -36,6 +36,7 @@ class TokenTracker:
         self.unknown_mint_trades = 0
         self._pending_subscribe: list[str] = []
         self._pending_unsubscribe: list[str] = []
+        self.trade_listeners: list[Any] = []  # callables (state, event) -> None, e.g. the evaluator's position tracker
 
     # ------------------------------------------------------------------ raw entry
     async def handle_raw(self, raw: dict[str, Any]) -> None:
@@ -90,6 +91,11 @@ class TokenTracker:
         self.trades_processed += 1
         self.persistence.incr_stat("trades")
         self.persistence.add_trade(ev)
+        for listener in self.trade_listeners:
+            try:
+                listener(state, ev)
+            except Exception:  # noqa: BLE001
+                log.exception("tracker.listener_error")
 
     async def on_migration(self, ev: MigrationEvent) -> None:
         state = self.states.get(ev.mint)

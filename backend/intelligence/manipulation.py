@@ -58,7 +58,8 @@ def assess_manipulation(state: TokenState, now: datetime | None = None) -> Manip
     a.top_wallet_trade_share = w5.top_wallet_share
     trades_per_wallet = len(trades5) / max(1, len(per_wallet))
     a.wash_trade_score = _clamp(0.6 * round_trip_share + 0.25 * min(1.0, (trades_per_wallet - 1.5) / 4.0) + 0.3 * max(0.0, a.top_wallet_trade_share - 0.25))
-    if a.round_trip_wallets >= 2 and round_trip_share > 0.3:
+    round_trip_trades = sum(per_wallet[w]["buys"] + per_wallet[w]["sells"] for w in round_trip)
+    if (a.round_trip_wallets >= 1 and round_trip_share > 0.3 and round_trip_trades >= 4) or (a.round_trip_wallets >= 2 and round_trip_share > 0.2):
         a.flags.append("wash_trading_pattern")
     if a.top_wallet_trade_share > settings.max_same_wallet_trade_share:
         a.flags.append(f"single_wallet_{int(a.top_wallet_trade_share * 100)}pct_of_volume")

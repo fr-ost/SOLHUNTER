@@ -95,6 +95,27 @@ class FilterSettings(_Group):
     min_breakout_p10: float = 0.25
 
 
+class WhaleSettings(_Group):
+    """Whale / smart-money engine thresholds (prefix ``WHALE_``)."""
+
+    model_config = SettingsConfigDict(env_prefix="WHALE_", env_file=".env", extra="ignore")
+
+    min_whale_trade_sol: float = 1.0
+    min_whale_pct_of_liquidity: float = 0.02
+    min_whale_position_sol: float = 2.0
+    smart_money_min_closed_positions: int = 8
+    smart_money_min_win_rate: float = 0.55
+    smart_money_min_profit_factor: float = 1.5
+    smart_money_min_realized_pnl_sol: float = 5.0
+    early_buyer_window_seconds: int = 120
+    sniper_window_seconds: int = 3
+    consensus_min_wallets: int = 3
+    distribution_exit_fraction: float = 0.5
+    insider_sell_min_sol: float = 0.5
+    cluster_min_confidence: float = 0.5
+    profile_cache_seconds: int = 300
+
+
 class RankingSettings(_Group):
     """Weights and thresholds for candidate ranking (prefix ``RANK_``). Weights are normalised."""
 
@@ -312,6 +333,7 @@ class Settings(BaseSettings):
     # --- nested groups ---------------------------------------------------------------
     filters: FilterSettings = Field(default_factory=FilterSettings)
     ranking: RankingSettings = Field(default_factory=RankingSettings)
+    whale: WhaleSettings = Field(default_factory=WhaleSettings)
     scanner: ScannerSettings = Field(default_factory=ScannerSettings)
     ai: AISettings = Field(default_factory=AISettings)
     telegram: TelegramSettings = Field(default_factory=TelegramSettings)
