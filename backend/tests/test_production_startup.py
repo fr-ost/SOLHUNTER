@@ -39,6 +39,7 @@ def test_api_boots_like_railway_and_stops_on_sigterm() -> None:
         "CHROME_EXTENSION_ID": "abcdefghijklmnopabcdefghijklmnop",
         "RUN_MIGRATIONS_ON_START": "true",
         "LOG_FORMAT": "json",
+        "LOG_LEVEL": "INFO",  # the test harness exports WARNING; production boots at INFO
         "AI_ENABLED": "false",
         "TELEGRAM_ENABLED": "false",
     }
