@@ -12,7 +12,7 @@ _Last updated: 2026-10-30 — backend test run: **105 passed** (`pytest -q`, Pos
 | 4 Filtering & ranking | 10 configurable stages with explainable reasons, execution analyzer, weighted ranking with penalties/confidence, evaluator orchestration, risk events, rug detection | ✅ |
 | 5 ML | Point-in-time features, outcome labelling, XGBoost (rug / breakout / expected return) with grouped walk-forward validation, calibration, metrics, versioned registry, scheduler, CLI, experimental policy | ✅ |
 | 6 GPT analyst | Responses API + strict schema, model verification without substitution, spend limits, cache, retries, queue + dead letter, verdict integration | ✅ (live call untested) |
-| 7 Chrome extension | MV3 side panel, React/TS, all pages | see `docs/EXTENSION.md` and the section below |
+| 7 Chrome extension | MV3 side panel (React 18 + TypeScript + Vite + recharts): dashboard, candidates, candidate detail with charts, wallets, token search/track, history with outcomes, paper trading, journal, settings with runtime overrides, status, logs; live WebSocket updates; verified/estimate/model badges | ✅ builds & type-checks (`npm run build`); Chrome runtime behaviour not exercised in this environment |
 | 8 Production readiness | Telegram alerts, status/monitoring, security review, production start-up test, docs, checklist | ✅ (live integrations untested) |
 
 ## Remaining work / known gaps
@@ -20,6 +20,8 @@ _Last updated: 2026-10-30 — backend test run: **105 passed** (`pytest -q`, Pos
 * **Live validation with real credentials** – PumpPortal stream, Helius, OpenAI (`gpt-5.6`), Telegram and
   Railway itself were not reachable from the build environment. The code paths are tested with local
   servers and mocks; the first deployment must confirm them (see `docs/DEPLOYMENT_CHECKLIST.md`).
+* **Chrome runtime** – the extension was built and type-checked but not opened in Chrome here: verify side-panel
+  opening, `chrome.storage`/`chrome.permissions` prompts and CORS against the live API (`docs/EXTENSION.md`).
 * **Docker image build** – the Docker daemon was unavailable in the build sandbox; Dockerfiles were
   reviewed and the start scripts were executed directly (production start-up test). Build once locally
   or let Railway build.

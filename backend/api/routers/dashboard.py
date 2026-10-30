@@ -32,8 +32,12 @@ async def dashboard(session: AsyncSession = Depends(get_db_session)) -> dict[str
             .limit(10)
         )
     ).all()
-    whales = (await session.execute(select(WhaleEvent).order_by(WhaleEvent.occurred_at.desc()).limit(15))).scalars().all()
-    smart = (await session.execute(select(SmartMoneyEvent).order_by(SmartMoneyEvent.occurred_at.desc()).limit(10))).scalars().all()
+    whales = (
+        await session.execute(select(WhaleEvent, Token.symbol).join(Token, Token.mint == WhaleEvent.mint).order_by(WhaleEvent.occurred_at.desc()).limit(15))
+    ).all()
+    smart = (
+        await session.execute(select(SmartMoneyEvent, Token.symbol).join(Token, Token.mint == SmartMoneyEvent.mint).order_by(SmartMoneyEvent.occurred_at.desc()).limit(10))
+    ).all()
     alerts = (await session.execute(select(Alert).order_by(Alert.created_at.desc()).limit(10))).scalars().all()
     costs = await status_service.cost_estimate(session)
     return {
@@ -50,8 +54,8 @@ async def dashboard(session: AsyncSession = Depends(get_db_session)) -> dict[str
             }
             for score, token in top
         ],
-        "recent_whale_activity": rows_to_dicts(list(whales)),
-        "recent_smart_money": rows_to_dicts(list(smart)),
+        "recent_whale_activity": [{**orm_to_dict(e), "symbol": sym} for e, sym in whales],
+        "recent_smart_money": [{**orm_to_dict(e), "symbol": sym} for e, sym in smart],
         "recent_alerts": rows_to_dicts(list(alerts), exclude={"payload", "message"}),
         "costs": costs,
         "queue": await status_service.queue_backlog(),

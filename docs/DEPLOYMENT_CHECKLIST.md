@@ -15,7 +15,7 @@
 | 11 | GPT analysis works with a valid API key | ⚠️ untested live | Implemented against the official SDK (`responses.parse`) with strict schema; tested with a fake client. Model availability is verified at start-up; confirm `analyst.model_verified` in logs. |
 | 12 | Spending controls work | ✅ | Daily/monthly/per-token limits tested. |
 | 13 | Telegram alerts work | ⚠️ untested live | Client tested with mocked Bot API (incl. 429); needs real token/chat id. |
-| 14 | Chrome extension connects to the deployed API | ⚠️ needs manual check | Extension builds; load unpacked, set base URL/API key, set `CHROME_EXTENSION_ID` on the API. |
+| 14 | Chrome extension connects to the deployed API | ⚠️ needs manual check | `npm run typecheck && npm run build` pass; load `extension/dist` unpacked, set base URL/API key in Settings, set `CHROME_EXTENSION_ID` on the API. |
 | 15 | API authentication works | ✅ | Auth tests + production boot test (401 without key). |
 | 16 | No localhost dependency in production config | ✅ | Production validator warns on localhost URLs; Dockerfiles/scripts bind `0.0.0.0:$PORT`; extension default URL is empty. |
 | 17 | Railway deployment instructions complete | ✅ | `docs/RAILWAY_DEPLOYMENT.md`, `docs/ENVIRONMENT_VARIABLES.md`. |
