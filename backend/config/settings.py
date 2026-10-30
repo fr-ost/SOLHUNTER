@@ -141,6 +141,12 @@ class ScannerSettings(_Group):
     dexscreener_refresh_interval_seconds: int = 30
     creator_history_cache_seconds: int = 3600
     retention_cleanup_interval_minutes: int = 60
+    # Pump.fun bonding-curve constants (verify against pump.fun docs; used for progress/impact estimates)
+    pump_initial_virtual_sol: float = 30.0
+    pump_initial_virtual_tokens: float = 1_073_000_000.0
+    pump_curve_tokens_to_sell: float = 793_100_000.0
+    pump_total_supply: float = 1_000_000_000.0
+    pump_migration_real_sol: float = 85.0
 
     @computed_field  # type: ignore[prop-decorator]
     @property
