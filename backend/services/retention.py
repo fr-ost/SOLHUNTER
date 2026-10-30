@@ -9,7 +9,16 @@ from sqlalchemy import delete
 from backend.config.logging import get_logger
 from backend.config.settings import get_settings
 from backend.database.engine import session_scope
-from backend.models import Alert, RawEvent, TokenTransaction, WalletTransaction, WorkerHeartbeat
+from backend.models import (
+    Alert,
+    CandidateScore,
+    RawEvent,
+    TokenSnapshot,
+    TokenTransaction,
+    TrainingSample,
+    WalletTransaction,
+    WorkerHeartbeat,
+)
 
 log = get_logger(__name__)
 
@@ -37,6 +46,20 @@ async def run_retention() -> dict[str, int]:
             deleted["alerts"] = res.rowcount or 0
         res = await session.execute(delete(WorkerHeartbeat).where(WorkerHeartbeat.last_heartbeat_at < now - timedelta(days=2)))
         deleted["worker_heartbeats"] = res.rowcount or 0
+        if settings.snapshots_days > 0:
+            # Optional: prune only snapshots that are NOT training data (no training sample, no candidate score).
+            from sqlalchemy import select
+
+            labelled = select(TrainingSample.snapshot_id)
+            scored = select(CandidateScore.snapshot_id).where(CandidateScore.snapshot_id.is_not(None))
+            res = await session.execute(
+                delete(TokenSnapshot).where(
+                    TokenSnapshot.captured_at < now - timedelta(days=settings.snapshots_days),
+                    TokenSnapshot.id.not_in(labelled),
+                    TokenSnapshot.id.not_in(scored),
+                )
+            )
+            deleted["token_snapshots_unlabelled"] = res.rowcount or 0
         # token_snapshots / training_samples / candidate_scores are intentionally never pruned here
         # (RETENTION_SNAPSHOTS_DAYS=0 by default); they are the model training history.
     if any(deleted.values()):

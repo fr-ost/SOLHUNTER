@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.config.logging import get_logger
 from backend.config.settings import get_settings
 from backend.intelligence.wallets import mark_token_rugged
-from backend.models import TokenRiskEvent, TokenSnapshot, TokenTransaction, TrainingSample
+from backend.models import Token, TokenRiskEvent, TokenSnapshot, TokenTransaction, TrainingSample
 
 log = get_logger(__name__)
 
@@ -100,15 +100,19 @@ async def label_pending_snapshots(session: AsyncSession, limit: int = 200, now: 
     now = now or datetime.now(UTC)
     horizon = timedelta(minutes=settings.scanner.outcome_horizon_minutes)
     ready_before = now - timedelta(minutes=settings.scanner.outcome_label_delay_minutes)
+    # Only label snapshots whose token was still tracked for the whole horizon (otherwise the outcome
+    # would be truncated), or whose token is already final (dead / rejected with a hard failure).
     pending = (
         await session.execute(
             select(TokenSnapshot)
+            .join(Token, Token.mint == TokenSnapshot.mint)
             .outerjoin(TrainingSample, TrainingSample.snapshot_id == TokenSnapshot.id)
             .where(
                 TrainingSample.id.is_(None),
                 TokenSnapshot.features.is_not(None),
                 func.jsonb_typeof(TokenSnapshot.features) == "object",
                 TokenSnapshot.captured_at < ready_before,
+                (Token.tracking_until.is_(None)) | (Token.tracking_until >= TokenSnapshot.captured_at + horizon) | (Token.status.in_(["dead", "rejected"])),
             )
             .order_by(TokenSnapshot.captured_at.asc())
             .limit(limit)

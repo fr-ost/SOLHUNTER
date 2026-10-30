@@ -1,0 +1,28 @@
+{
+  "name": "gemfinder-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "GemFinder AI - Chrome side panel dashboard for the Solana token research scanner",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "icons": "node scripts/make-icons.mjs"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "recharts": "3.10.1"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.3.7",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "typescript": "5.9.3",
+    "vite": "7.3.7"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

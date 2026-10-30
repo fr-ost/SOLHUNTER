@@ -16,8 +16,8 @@ from typing import Any
 from backend.ingestion.events import MigrationEvent, NewTokenEvent, TradeEvent
 from backend.scanner import pump_math
 
-MAX_TRADES = 6000
-MAX_PRICE_POINTS = 6000
+MAX_TRADES = 3000  # per token; bounded to keep worker memory predictable (~250 tokens tracked)
+MAX_PRICE_POINTS = 3000
 
 
 @dataclass(slots=True)

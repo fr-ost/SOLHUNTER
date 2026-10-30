@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import resource
 import signal
 from datetime import UTC, datetime
 from typing import Any
@@ -58,6 +59,7 @@ class ScannerWorker:
         data: dict[str, Any] = {
             "version": __version__,
             "uptime_seconds": int((datetime.now(UTC) - self.started_at).total_seconds()),
+            "memory_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0, 1),
             "snapshots_taken": self.snapshots.snapshots_taken,
             "persistence": {"pending": self.persistence.pending, "rows_written": self.persistence.rows_written, "failures": self.persistence.failures, "last_flush_at": self.persistence.last_flush_at.isoformat() if self.persistence.last_flush_at else None},
             "loop_errors": self.loop_errors,
