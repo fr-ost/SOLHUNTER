@@ -14,7 +14,9 @@ from backend.config.settings import get_settings
 from backend.models import Base
 
 config = context.config
-if config.config_file_name is not None:
+# Only the alembic CLI should reconfigure logging. When migrations run inside the API/scanner process
+# (backend.database.migrate) the attribute below is set so structured JSON logging is preserved.
+if config.config_file_name is not None and not config.attributes.get("skip_logging_config"):
     fileConfig(config.config_file_name)
 
 if not config.get_main_option("sqlalchemy.url"):

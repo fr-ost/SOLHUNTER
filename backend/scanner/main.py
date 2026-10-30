@@ -94,6 +94,8 @@ class ScannerWorker:
         engine = get_engine()
         if s.run_migrations_on_start:
             await run_migrations_with_lock(engine, s.sqlalchemy_database_url)
+            configure_logging(s.log_level, s.log_format, service="scanner")
+            logging.getLogger().addHandler(self.heartbeat.log_handler)
         elif not await wait_for_schema(engine, s.migration_wait_timeout_seconds):
             raise RuntimeError("database schema is not at head revision; start the API with RUN_MIGRATIONS_ON_START=true first")
         ok, err = await check_redis()

@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def alembic_config(database_url: str | None = None) -> Config:
     cfg = Config(str(ROOT / "alembic.ini"))
+    cfg.attributes["skip_logging_config"] = True
     cfg.set_main_option("script_location", str(ROOT / "migrations"))
     if database_url:
         cfg.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))

@@ -47,6 +47,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception as exc:  # noqa: BLE001
         # Keep serving /health so the platform can report the failure instead of crash-looping silently.
         log.error("startup.database_unavailable", error=str(exc)[:300])
+    finally:
+        configure_logging(settings.log_level, settings.log_format, service="api")  # insurance against handler resets
     from backend.api.live import live_hub
 
     hub_task = asyncio.create_task(live_hub.run(), name="live-hub")
