@@ -181,14 +181,14 @@ class AISettings(_Group):
     model_config = SettingsConfigDict(env_prefix="AI_", env_file=".env", extra="ignore")
 
     enabled: bool = True
-    model: str = "gpt-5.6"
+    model: str = "gpt-5.6-terra"  # best cost/quality tier for structured research; "gpt-5.6-luna" = budget
     verify_model_on_start: bool = True
     timeout_seconds: float = 90.0
     max_retries: int = 2
     max_output_tokens: int = 3000
     reasoning_effort: str | None = None  # e.g. "low" / "medium" / "high" when supported by the model
-    input_cost_per_1m_usd: float = 2.50  # PLACEHOLDER - set from current OpenAI pricing
-    output_cost_per_1m_usd: float = 10.00  # PLACEHOLDER - set from current OpenAI pricing
+    input_cost_per_1m_usd: float = 2.00  # gpt-5.6-terra list price (verify on openai.com/api/pricing)
+    output_cost_per_1m_usd: float = 12.00
     daily_spend_limit_usd: float = 1.50
     monthly_spend_limit_usd: float = 25.0
     max_analyses_per_day: int = 60
@@ -306,6 +306,8 @@ class Settings(BaseSettings):
     pumpportal_enabled: bool = True
     pumpportal_ws_url: str = "wss://pumpportal.fun/api/data"
     pumpportal_max_trade_subscriptions: int = 250
+    max_tracked_wallets: int = 100
+    wallet_alert_cooldown_seconds: int = 300
     dexscreener_enabled: bool = True
     dexscreener_base_url: str = "https://api.dexscreener.com"
     dexscreener_rpm_pairs: int = 300

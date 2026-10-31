@@ -517,3 +517,47 @@ export interface LiveEvent {
   score?: number;
   [key: string]: unknown;
 }
+
+export interface TrackedWalletInput {
+  address: string;
+  label?: string | null;
+  notes?: string | null;
+  alert_on_buy?: boolean;
+  alert_on_sell?: boolean;
+  min_alert_sol?: number;
+  auto_track_tokens?: boolean;
+}
+
+export interface TrackedWallet extends Required<Omit<TrackedWalletInput, "label" | "notes">> {
+  label: string | null;
+  notes: string | null;
+  active: boolean;
+  trades_seen: number;
+  last_trade_at: string | null;
+  created_at: string;
+  trades_24h?: number;
+  buy_sol_24h?: number;
+  sell_sol_24h?: number;
+  net_sol_24h?: number;
+  tokens_24h?: number;
+  profile?: { category: string; category_confidence: number; realized_pnl_sol: number; unrealized_pnl_sol: number; win_rate: number | null; tokens_traded: number; closed_positions: number };
+}
+
+export interface TrackedTrade {
+  signature: string;
+  wallet: string;
+  label: string | null;
+  side: "buy" | "sell";
+  sol_amount: number | null;
+  token_amount: number | null;
+  price_sol: number | null;
+  market_cap_sol: number | null;
+  block_time: string;
+  mint: string;
+  symbol: string | null;
+  name: string | null;
+  token_status: string | null;
+  score: number | null;
+  score_status: string | null;
+  rug_risk: number | null;
+}

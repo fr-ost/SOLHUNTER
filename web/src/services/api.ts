@@ -22,6 +22,9 @@ import type {
   TradeCreate,
   TradeUpdate,
   WalletProfile,
+  TrackedTrade,
+  TrackedWallet,
+  TrackedWalletInput,
 } from "../types/api";
 
 export class ApiError extends Error {
@@ -172,6 +175,16 @@ export class ApiClient {
   createJournal = (body: { trade_id?: number | null; mint?: string | null; entry_type?: string; title?: string | null; content: string; tags?: string[] | null }): Promise<JournalEntry> =>
     this.request("POST", "/api/v1/journal", body);
   deleteJournal = (id: number): Promise<void> => this.request("DELETE", `/api/v1/journal/${id}`);
+
+  // ---- wallet tracker -------------------------------------------------------
+  trackedWallets = (): Promise<{ items: TrackedWallet[]; limit: number }> => this.request("GET", "/api/v1/tracked-wallets");
+  addTrackedWallet = (body: TrackedWalletInput): Promise<{ wallet: TrackedWallet }> => this.request("POST", "/api/v1/tracked-wallets", body);
+  updateTrackedWallet = (address: string, body: Partial<TrackedWalletInput> & { active?: boolean }): Promise<{ wallet: TrackedWallet }> =>
+    this.request("PATCH", `/api/v1/tracked-wallets/${encodeURIComponent(address)}`, body);
+  removeTrackedWallet = (address: string): Promise<void> => this.request("DELETE", `/api/v1/tracked-wallets/${encodeURIComponent(address)}`);
+  trackedTrades = (limit = 100): Promise<{ items: TrackedTrade[] }> => this.request("GET", "/api/v1/tracked-wallets/trades/recent", undefined, { query: { limit } });
+  trackedWalletTrades = (address: string, limit = 200): Promise<{ items: TrackedTrade[] }> =>
+    this.request("GET", `/api/v1/tracked-wallets/${encodeURIComponent(address)}/trades`, undefined, { query: { limit } });
 
   // ---- settings -------------------------------------------------------------
   settings = (): Promise<SettingsView> => this.request("GET", "/api/v1/settings");

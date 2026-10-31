@@ -346,6 +346,10 @@ class TokenState:
             return None
         return statistics.pstdev(vals) / mean * 100.0
 
+    @property
+    def market_cap_sol_safe(self) -> float | None:
+        return self.last_market_cap_sol
+
     def stream_holder_estimate(self) -> int:
         return sum(1 for w in self.wallets.values() if w.balance_estimate > 0)
 

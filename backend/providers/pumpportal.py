@@ -97,6 +97,18 @@ class PumpPortalClient:
         for chunk in _chunks(new, 50):
             await self._send({"method": "subscribeAccountTrade", "keys": chunk})
 
+    async def unsubscribe_account_trades(self, accounts: list[str]) -> None:
+        existing = [a for a in accounts if a in self._account_subs]
+        if not existing:
+            return
+        self._account_subs.difference_update(existing)
+        for chunk in _chunks(existing, 50):
+            await self._send({"method": "unsubscribeAccountTrade", "keys": chunk})
+
+    @property
+    def account_subscription_count(self) -> int:
+        return len(self._account_subs)
+
     @property
     def token_subscription_count(self) -> int:
         return len(self._token_subs)
@@ -197,6 +209,7 @@ class PumpPortalClient:
             "last_service_message": self.last_service_message,
             "last_handler_error": self.last_handler_error,
             "subscriptions": len(self._token_subs),
+            "wallet_subscriptions": len(self._account_subs),
             "samples": self.samples[:3],
         }
 

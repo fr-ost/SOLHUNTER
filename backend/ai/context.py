@@ -87,6 +87,7 @@ def build_analyst_context(ctx: EvaluationContext, result: PipelineResult, rankin
         "ranking": {"overall_score": ranking.overall_score, "components": ranking.components, "penalties": ranking.penalties, "confidence": ranking.confidence, "status": ranking.status},
         "data_freshness": {"stream_age_seconds": quality.get("stream_age_seconds"), "holder_count_source": quality.get("holder_count_source"), "sol_usd_missing": bool(quality.get("sol_usd_missing")), "dexscreener_stale": bool(quality.get("dexscreener_stale")), "sources": snap.get("data_sources")},
         "risk_indicators": [e for e in s.flags.get("risk_events", [])][-10:],
+        "followed_wallet_activity": s.flags.get("tracked_wallet_activity", [])[-10:],
     }
     return json.loads(json.dumps(context, default=str))
 

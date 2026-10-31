@@ -39,6 +39,9 @@ class TokenTracker:
         self._pending_subscribe: list[str] = []
         self._pending_unsubscribe: list[str] = []
         self.trade_listeners: list[Any] = []  # callables (state, event) -> None, e.g. the evaluator's position tracker
+        self.tracked_wallets: dict[str, dict[str, Any]] = {}  # address -> config (manual wallet tracker)
+        self.wallet_listeners: list[Any] = []  # async callables (state, event, config) for tracked-wallet trades
+        self.tracked_wallet_trades = 0
 
     # ------------------------------------------------------------------ raw entry
     async def handle_raw(self, raw: dict[str, Any]) -> None:
@@ -90,6 +93,9 @@ class TokenTracker:
 
     async def on_trade(self, ev: TradeEvent) -> None:
         state = self.states.get(ev.mint)
+        wallet_cfg = self.tracked_wallets.get(ev.trader)
+        if state is None and wallet_cfg is not None:
+            state = await self._state_for_tracked_wallet_trade(ev, wallet_cfg)
         if state is None:
             self.unknown_mint_trades += 1
             return
@@ -102,7 +108,62 @@ class TokenTracker:
                 listener(state, ev)
             except Exception:  # noqa: BLE001
                 log.exception("tracker.listener_error")
+        if wallet_cfg is not None:
+            self.tracked_wallet_trades += 1
+            self.persistence.incr_stat("tracked_wallet_trades")
+            state.flags.setdefault("tracked_wallet_activity", []).append(
+                {"wallet": ev.trader, "label": wallet_cfg.get("label"), "side": ev.side, "sol": ev.sol_amount, "at": ev.block_time.isoformat()}
+            )
+            state.flags["tracked_wallet_activity"] = state.flags["tracked_wallet_activity"][-20:]
+            for wl in self.wallet_listeners:
+                try:
+                    await wl(state, ev, wallet_cfg)
+                except Exception:  # noqa: BLE001
+                    log.exception("tracker.wallet_listener_error")
 
+    async def _state_for_tracked_wallet_trade(self, ev: TradeEvent, cfg: dict[str, Any]) -> TokenState | None:
+        """A followed wallet traded a token we are not tracking: start tracking it (or record it untracked)."""
+        label = cfg.get("label") or ev.trader[:6]
+        if cfg.get("auto_track_tokens", True) and ev.side == "buy":
+            state = await self.track_manually(ev.mint, reason=f"bought by tracked wallet {label}")
+            state.flags["manual"] = True
+            state.flags["source"] = "wallet_tracker"
+            return state
+        # Not auto-tracked: keep a minimal token row so the trade can be stored and shown.
+        state = TokenState(ev.mint, ev.received_at)
+        state.status = "archived"
+        state.status_reason = f"traded by tracked wallet {label} (not auto-tracked)"
+        self.persistence.add_token(state)
+        return state
+
+    async def sync_tracked_wallets(self, session: Any) -> int:
+        """Align PumpPortal account subscriptions with the tracked_wallets table. Returns active count."""
+        from sqlalchemy import select
+
+        from backend.models import TrackedWallet
+
+        rows = (await session.execute(select(TrackedWallet).where(TrackedWallet.active.is_(True)))).scalars().all()
+        wanted = {
+            r.address: {
+                "label": r.label,
+                "alert_on_buy": r.alert_on_buy,
+                "alert_on_sell": r.alert_on_sell,
+                "min_alert_sol": r.min_alert_sol,
+                "auto_track_tokens": r.auto_track_tokens,
+            }
+            for r in rows
+        }
+        added = [a for a in wanted if a not in self.tracked_wallets]
+        removed = [a for a in self.tracked_wallets if a not in wanted]
+        self.tracked_wallets = wanted
+        if self.pumpportal is not None:
+            if removed:
+                await self.pumpportal.unsubscribe_account_trades(removed)
+            if added:
+                await self.pumpportal.subscribe_account_trades(added)
+        if added or removed:
+            log.info("tracker.tracked_wallets_synced", active=len(wanted), added=len(added), removed=len(removed))
+        return len(wanted)
     async def on_migration(self, ev: MigrationEvent) -> None:
         state = self.states.get(ev.mint)
         self.persistence.incr_stat("migrations")
@@ -228,6 +289,8 @@ class TokenTracker:
             "duplicates": self.dedupe.duplicates,
             "unknown_mint_trades": self.unknown_mint_trades,
             "unparsed_messages": self.unparsed_messages,
+            "tracked_wallets": len(self.tracked_wallets),
+            "tracked_wallet_trades": self.tracked_wallet_trades,
             "last_unparsed": self.last_unparsed,
         }
 

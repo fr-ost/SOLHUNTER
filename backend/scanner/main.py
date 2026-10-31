@@ -125,6 +125,12 @@ class ScannerWorker:
         self.tracker = TokenTracker(self.persistence, self.pumpportal, Deduplicator())
         await self.tracker.restore_checkpoint()
         self.build_evaluator()
+        from backend.services.wallet_watch import WalletWatch
+
+        self.wallet_watch = WalletWatch(self)
+        self.tracker.wallet_listeners.append(self.wallet_watch.on_tracked_trade)
+        async with session_scope() as session:
+            await self.tracker.sync_tracked_wallets(session)
 
         self._tasks.append(asyncio.create_task(self.persistence.run(), name="persistence"))
         if self.pumpportal:
@@ -172,6 +178,8 @@ class ScannerWorker:
                 now = datetime.now(UTC)
                 if self.tracker:
                     await self.tracker.process_track_requests()
+                    async with session_scope() as session:
+                        await self.tracker.sync_tracked_wallets(session)
                     await self.tracker.expire()
                     if (now - last_checkpoint).total_seconds() > 30:
                         await self.tracker.persist_checkpoint()

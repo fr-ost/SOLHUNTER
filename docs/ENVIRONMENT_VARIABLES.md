@@ -35,7 +35,8 @@ All runtime thresholds in the `FILTER_*`, `RANK_*`, `WHALE_*`, `SCANNER_*`, `TEL
 | `SOLANA_FALLBACK_RPC_URL` | scanner | public mainnet RPC | Used only without a Helius key. |
 | `SOL_USD_FALLBACK_PRICE` | scanner | empty | Last-resort SOL price if DexScreener is unreachable. |
 | `OPENAI_API_KEY` / `OPENAI_BASE_URL` | scanner | empty | GPT analyst credentials. |
-| `AI_ENABLED` / `AI_MODEL` | scanner | `true` / `gpt-5.6` | Model is verified at start; no silent substitution. |
+| `AI_ENABLED` / `AI_MODEL` | scanner | `true` / `gpt-5.6-terra` | Model is verified at start; no silent substitution. `gpt-5.6-luna` is the budget option. |
+| `MAX_TRACKED_WALLETS` / `WALLET_ALERT_COOLDOWN_SECONDS` | scanner | `100` / `300` | Manual wallet tracker limits. |
 | `AI_VERIFY_MODEL_ON_START` | scanner | `true` | Calls `models.retrieve`. |
 | `AI_REASONING_EFFORT` | scanner | empty | Optional `low/medium/high` if the model supports it. |
 | `AI_MAX_OUTPUT_TOKENS` / `AI_TIMEOUT_SECONDS` / `AI_MAX_RETRIES` | scanner | `3000` / `90` / `2` | Call limits. |

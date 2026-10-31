@@ -70,6 +70,15 @@ async def refresh_pair(state: TokenState, dex: DexScreenerClient, now: datetime,
     state.pair_fetched_at = now
     primary = DexScreenerClient.primary_pair(pairs)
     if primary:
+        if state.flags.get("manual") and not state.flags.get("launch_resolved"):
+            # Manually tracked tokens start with launch_time = now; use the pool creation time instead.
+            created = min((p.pair_created_at for p in pairs if p.pair_created_at), default=None)
+            if created is not None and created < state.launch_time:
+                state.launch_time = created
+            base = (primary.raw or {}).get("baseToken") or {}
+            state.symbol = state.symbol or base.get("symbol")
+            state.name = state.name or base.get("name")
+            state.flags["launch_resolved"] = True
         state.pair = primary
         state.pool_address = primary.pair_address
         if primary.pool_kind != "pump" and state.pool_kind == "pump":

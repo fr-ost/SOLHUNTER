@@ -114,7 +114,12 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(RequestValidationError)
     async def _validation_exc(_: Request, exc: RequestValidationError) -> JSONResponse:
-        return JSONResponse({"detail": "Validation error", "errors": exc.errors()}, status_code=422)
+        errors = [
+            {"loc": list(e.get("loc", [])), "msg": str(e.get("msg", "")), "type": str(e.get("type", ""))}
+            for e in exc.errors()
+        ]
+        message = "; ".join(f"{'.'.join(str(x) for x in e['loc'][1:]) or 'body'}: {e['msg']}" for e in errors)[:300]
+        return JSONResponse({"detail": message or "Validation error", "errors": errors}, status_code=422)
 
     @app.exception_handler(Exception)
     async def _unhandled(_: Request, exc: Exception) -> JSONResponse:

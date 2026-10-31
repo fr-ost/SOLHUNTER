@@ -15,6 +15,7 @@ def register_routers(app: FastAPI) -> None:
         logs,
         status,
         tokens,
+        tracked_wallets,
         trading,
         wallets,
         whales,
@@ -24,6 +25,6 @@ def register_routers(app: FastAPI) -> None:
     )
     from backend.api.websocket import router as ws_router
 
-    for module in (dashboard, candidates, tokens, wallets, whales, history, trading, settings_router, status, logs):
+    for module in (dashboard, candidates, tokens, tracked_wallets, wallets, whales, history, trading, settings_router, status, logs):
         app.include_router(module.router, prefix=API_PREFIX)
     app.include_router(ws_router)

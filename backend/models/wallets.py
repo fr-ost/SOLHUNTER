@@ -110,3 +110,20 @@ class WalletRelationship(Base, TimestampMixin):
     observations: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     first_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class TrackedWallet(Base, TimestampMixin):
+    """Wallets the user asked to follow manually (copy-research watchlist)."""
+
+    __tablename__ = "tracked_wallets"
+
+    address: Mapped[str] = mapped_column(String(64), primary_key=True)
+    label: Mapped[str | None] = mapped_column(String(64))
+    notes: Mapped[str | None] = mapped_column(String(512))
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    alert_on_buy: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    alert_on_sell: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    min_alert_sol: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    auto_track_tokens: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    trades_seen: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_trade_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

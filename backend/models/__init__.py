@@ -34,7 +34,13 @@ from backend.models.tokens import (
     TokenTransaction,
 )
 from backend.models.trading import PaperTrade, TradeJournalEntry
-from backend.models.wallets import WalletProfile, WalletRelationship, WalletTokenPosition, WalletTransaction
+from backend.models.wallets import (
+    TrackedWallet,
+    WalletProfile,
+    WalletRelationship,
+    WalletTokenPosition,
+    WalletTransaction,
+)
 
 __all__ = [
     "AISpendDaily",
@@ -65,6 +71,7 @@ __all__ = [
     "TokenStatus",
     "TokenTransaction",
     "TradeJournalEntry",
+    "TrackedWallet",
     "TrainingSample",
     "TxType",
     "WalletCategory",

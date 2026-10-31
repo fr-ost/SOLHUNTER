@@ -15,6 +15,8 @@ Interactive docs (`/docs`) are available only outside production.
 | `GET /api/v1/tokens/search?q=` / `GET /api/v1/tokens/recent` | Search by mint/symbol/name; recently discovered tokens. |
 | `GET /api/v1/tokens/{mint}` + `/snapshots`, `/transactions`, `/holders`, `/risk-events` | Token research data. |
 | `POST /api/v1/tokens/track` `{mint, reason}` | Ask the scanner to track a mint (queued via Redis, 202). |
+| `GET/POST /api/v1/tracked-wallets`, `PATCH/DELETE /api/v1/tracked-wallets/{address}` | Manual wallet tracker (follow wallets, alert settings). |
+| `GET /api/v1/tracked-wallets/trades/recent`, `GET /api/v1/tracked-wallets/{address}/trades` | Trades by followed wallets with the SolHunter verdict for each token. |
 | `GET /api/v1/wallets/top?category&sort&limit` | Wallet leaderboard (excludes infrastructure accounts). |
 | `GET /api/v1/wallets/{address}` + `/transactions` | Profile, positions, relationships, events. |
 | `GET /api/v1/whales/recent?limit&mint` / `GET /api/v1/whales/signals` | Whale & smart-money feeds, latest whale signals per token. |
