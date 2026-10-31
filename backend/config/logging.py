@@ -26,6 +26,13 @@ def _scrub(_: Any, __: str, event_dict: dict[str, Any]) -> dict[str, Any]:
     return event_dict
 
 
+def _railway_message(_: Any, __: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+    """Railway's log explorer displays the ``message`` field; mirror the structlog ``event`` into it."""
+    if "event" in event_dict and "message" not in event_dict:
+        event_dict["message"] = event_dict["event"]
+    return event_dict
+
+
 def _capture_recent(_: Any, __: str, event_dict: dict[str, Any]) -> dict[str, Any]:
     try:
         _recent_logs.append({k: (v if isinstance(v, (str, int, float, bool, type(None))) else str(v)) for k, v in event_dict.items()})
@@ -47,6 +54,7 @@ def configure_logging(level: str = "INFO", fmt: str = "json", service: str = "ap
         structlog.stdlib.add_logger_name,
         structlog.processors.TimeStamper(fmt="iso", utc=True),
         _scrub,
+        _railway_message,
         _capture_recent,
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
