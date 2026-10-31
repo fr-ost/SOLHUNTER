@@ -202,3 +202,10 @@ async def test_redis_track_request_is_consumed() -> None:
     tracker = TokenTracker(PersistenceWriter(), FakePumpPortal(), Deduplicator())  # type: ignore[arg-type]
     assert await tracker.process_track_requests() == 1
     assert tracker.states[fx.MINT].flags.get("manual") is True
+
+
+async def test_unparsed_messages_are_counted_with_sample() -> None:
+    tracker = TokenTracker(PersistenceWriter(), FakePumpPortal(), Deduplicator())  # type: ignore[arg-type]
+    await tracker.handle_raw({"type": "newToken", "token": {"address": "x"}})
+    stats = tracker.stats()
+    assert stats["unparsed_messages"] == 1 and "newToken" in stats["last_unparsed"]

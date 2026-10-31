@@ -42,7 +42,7 @@ export function StatusPage(): JSX.Element {
             <div className="grid-3">
               <Stat label="Status" value={<Badge tone={s.scanner.stale ? "bad" : statusTone(s.scanner.status)}>{s.scanner.status}</Badge>} sub={s.scanner.last_heartbeat_at ? `heartbeat ${timeAgo(s.scanner.last_heartbeat_at)}` : "no heartbeat"} />
               <Stat label="Tracked" value={str(tracker.tracked) || "n/a"} sub={`events ${fmtNum(Number(tracker.events_processed) || 0)}`} />
-              <Stat label="PumpPortal" value={<Badge tone={pumpportal.connected ? "good" : "bad"}>{pumpportal.connected ? "connected" : "disconnected"}</Badge>} sub={`${str(pumpportal.subscriptions) || 0} subs`} />
+              <Stat label="PumpPortal" value={<Badge tone={pumpportal.connected ? "good" : "bad"}>{pumpportal.connected ? "connected" : "disconnected"}</Badge>} sub={`${fmtNum(Number(pumpportal.messages) || 0)} msgs · ${str(pumpportal.subscriptions) || 0} subs`} />
               <Stat label="Evaluations" value={str(evaluator.evaluations) || "0"} sub={`${str(evaluator.candidates) || 0} cand · ${str(evaluator.watchlist) || 0} watch · ${str(evaluator.hard_fails) || 0} hard fails`} />
               <Stat label="Predictor" value={<span className="small">{str(evaluator.predictor) || "n/a"}</span>} sub={evaluator.predictor_experimental ? "experimental" : "validated"} />
               <Stat label="Persistence" value={`${str(persistence.pending) || 0} pending`} sub={`${fmtNum(Number(persistence.rows_written) || 0)} rows · ${str(persistence.failures) || 0} failures`} />
@@ -54,6 +54,11 @@ export function StatusPage(): JSX.Element {
                 ["uptime", stats.uptime_seconds ? `${Math.floor(Number(stats.uptime_seconds) / 60)} min` : "n/a"],
                 ["GPT", `${gpt.enabled ? "enabled" : "disabled"} ${str(gpt.model)} ${gpt.disabled_reason ? `- ${str(gpt.disabled_reason)}` : ""}`],
                 ["queue", Object.entries(s.queue).map(([k, v]) => `${k} ${v}`).join(" · ") || "n/a"],
+                ["stream", `${fmtNum(Number(pumpportal.messages) || 0)} messages · ${str(pumpportal.service_messages) || 0} service · ${str(tracker.unparsed_messages) || 0} unparsed · ${str(pumpportal.handler_errors) || 0} handler errors`],
+                ["last service msg", str(pumpportal.last_service_message) || "none"],
+                ...(pumpportal.last_handler_error ? [["last handler error", str(pumpportal.last_handler_error)] as [string, string]] : []),
+                ...(tracker.last_unparsed ? [["last unparsed", str(tracker.last_unparsed)] as [string, string]] : []),
+                ...(Array.isArray(pumpportal.samples) && (pumpportal.samples as unknown[]).length ? [["first raw message", str((pumpportal.samples as unknown[])[0])] as [string, string]] : []),
               ]}
             />
             {s.workers.length ? (

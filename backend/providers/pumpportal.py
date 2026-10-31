@@ -43,6 +43,12 @@ class PumpPortalClient:
         self._send_lock = asyncio.Lock()
         self.connected = asyncio.Event()
         self.messages_received = 0
+        self.service_messages = 0
+        self.non_json_messages = 0
+        self.handler_errors = 0
+        self.last_service_message: str | None = None
+        self.last_handler_error: str | None = None
+        self.samples: list[str] = []  # first raw messages, for verifying the field mapping
         self.last_message_at: float | None = None
 
     # ------------------------------------------------------------------ control
@@ -151,16 +157,23 @@ class PumpPortalClient:
     async def _on_raw(self, raw: str | bytes) -> None:
         self.messages_received += 1
         self.last_message_at = asyncio.get_running_loop().time()
+        text = raw.decode(errors="replace") if isinstance(raw, bytes) else str(raw)
+        if len(self.samples) < 5:
+            self.samples.append(text[:600])
+            log.info("pumpportal.sample", n=len(self.samples), raw=text[:600])
         try:
             data = json.loads(raw)
         except (TypeError, ValueError):
-            log.debug("pumpportal.non_json_message")
+            self.non_json_messages += 1
+            log.warning("pumpportal.non_json_message", raw=text[:200])
             return
         if not isinstance(data, dict):
             return
         if "message" in data and "txType" not in data and "mint" not in data:
             # Service messages, e.g. {"message": "Successfully subscribed to token creation events."}
-            log.debug("pumpportal.service_message", message=str(data.get("message"))[:120])
+            self.service_messages += 1
+            self.last_service_message = str(data.get("message"))[:200]
+            log.info("pumpportal.service_message", message=self.last_service_message)
             if "error" in str(data.get("message", "")).lower():
                 self.tracker.record_error(str(data.get("message"))[:200])
             else:
@@ -169,8 +182,23 @@ class PumpPortalClient:
         self.tracker.record_success()
         try:
             await self.handler(data)
-        except Exception:  # noqa: BLE001 - a handler bug must not kill the stream
+        except Exception as exc:  # noqa: BLE001 - a handler bug must not kill the stream
+            self.handler_errors += 1
+            self.last_handler_error = f"{type(exc).__name__}: {exc}"[:200]
             log.exception("pumpportal.handler_error")
+
+    def diagnostics(self) -> dict[str, Any]:
+        return {
+            "connected": self.connected.is_set(),
+            "messages": self.messages_received,
+            "service_messages": self.service_messages,
+            "non_json": self.non_json_messages,
+            "handler_errors": self.handler_errors,
+            "last_service_message": self.last_service_message,
+            "last_handler_error": self.last_handler_error,
+            "subscriptions": len(self._token_subs),
+            "samples": self.samples[:3],
+        }
 
 
 def _chunks(items: list[str], size: int) -> list[list[str]]:

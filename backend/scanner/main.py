@@ -68,7 +68,7 @@ class ScannerWorker:
         if self.tracker:
             data["tracker"] = self.tracker.stats()
         if self.pumpportal:
-            data["pumpportal"] = {"connected": self.pumpportal.connected.is_set(), "messages": self.pumpportal.messages_received, "subscriptions": self.pumpportal.token_subscription_count}
+            data["pumpportal"] = self.pumpportal.diagnostics()
         if self.evaluator is not None:
             data["evaluator"] = self.evaluator.stats()
         return data

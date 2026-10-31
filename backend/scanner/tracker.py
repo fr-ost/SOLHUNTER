@@ -34,6 +34,8 @@ class TokenTracker:
         self.events_processed = 0
         self.trades_processed = 0
         self.unknown_mint_trades = 0
+        self.unparsed_messages = 0
+        self.last_unparsed: str | None = None
         self._pending_subscribe: list[str] = []
         self._pending_unsubscribe: list[str] = []
         self.trade_listeners: list[Any] = []  # callables (state, event) -> None, e.g. the evaluator's position tracker
@@ -42,6 +44,10 @@ class TokenTracker:
     async def handle_raw(self, raw: dict[str, Any]) -> None:
         event = normalize_pumpportal(raw)
         if event is None:
+            self.unparsed_messages += 1
+            if self.unparsed_messages <= 3 or self.unparsed_messages % 500 == 0:
+                self.last_unparsed = json.dumps(raw, default=str)[:400]
+                log.warning("tracker.unparsed_message", count=self.unparsed_messages, raw=self.last_unparsed)
             return
         if not await self.dedupe.is_new(event.dedupe_key, use_redis=isinstance(event, NewTokenEvent | MigrationEvent)):
             return
@@ -221,6 +227,8 @@ class TokenTracker:
             "untracked_capacity": self.untracked_due_to_capacity,
             "duplicates": self.dedupe.duplicates,
             "unknown_mint_trades": self.unknown_mint_trades,
+            "unparsed_messages": self.unparsed_messages,
+            "last_unparsed": self.last_unparsed,
         }
 
     async def persist_checkpoint(self) -> None:

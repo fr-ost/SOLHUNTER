@@ -80,8 +80,16 @@ class GptAnalyst:
             name = type(exc).__name__
             status = getattr(exc, "status_code", None)
             if status == 404 or "NotFound" in name:
+                available = await self._list_models()
+                if self.ai.model in available:
+                    self.model_verified = True
+                    self.tracker.set_status("connected", model=self.ai.model, verified=True)
+                    log.info("analyst.model_verified", model=self.ai.model, via="models.list")
+                    return True
                 self.enabled = False
-                self.disabled_reason = f"configured model '{self.ai.model}' is not available for this API key - analysis disabled (no substitution)"
+                suggestions = sorted(m for m in available if m.startswith(("gpt-5", "gpt-4.1", "o3", "o4")))[:12]
+                hint = f" Models this key can use: {', '.join(suggestions)}." if suggestions else ""
+                self.disabled_reason = f"configured model '{self.ai.model}' is not available for this API key - analysis disabled (no substitution). Set AI_MODEL to one of your models.{hint}"
                 self.model_verified = False
                 self.tracker.set_status("down", model=self.ai.model, reason=self.disabled_reason)
                 log.error("analyst.model_unavailable", model=self.ai.model)
@@ -91,6 +99,15 @@ class GptAnalyst:
             self.tracker.record_error(f"{name}: {exc}")
             log.warning("analyst.model_verification_deferred", error=f"{name}: {exc}"[:200])
             return True
+
+    async def _list_models(self) -> set[str]:
+        try:
+            page = await self.client.models.list()
+            data = getattr(page, "data", page)
+            return {str(getattr(m, "id", m)) for m in data}
+        except Exception as exc:  # noqa: BLE001
+            log.warning("analyst.models_list_failed", error=f"{type(exc).__name__}: {exc}"[:200])
+            return set()
 
     def status(self) -> dict[str, Any]:
         return {"enabled": self.enabled, "model": self.ai.model, "model_verified": self.model_verified, "disabled_reason": self.disabled_reason}

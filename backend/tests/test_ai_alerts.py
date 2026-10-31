@@ -107,8 +107,9 @@ class FakeResponses:
 
 
 class FakeModels:
-    def __init__(self, available: bool = True) -> None:
+    def __init__(self, available: bool = True, listed: list[str] | None = None) -> None:
         self.available = available
+        self.listed = listed or []
 
     async def retrieve(self, model: str):  # noqa: ANN202
         if not self.available:
@@ -117,9 +118,12 @@ class FakeModels:
             raise exc
         return SimpleNamespace(id=model)
 
+    async def list(self):  # noqa: ANN202
+        return SimpleNamespace(data=[SimpleNamespace(id=m) for m in self.listed])
 
-def fake_client(outputs: list, available: bool = True) -> SimpleNamespace:
-    return SimpleNamespace(responses=FakeResponses(outputs), models=FakeModels(available))
+
+def fake_client(outputs: list, available: bool = True, listed: list[str] | None = None) -> SimpleNamespace:
+    return SimpleNamespace(responses=FakeResponses(outputs), models=FakeModels(available, listed))
 
 
 async def _seed_token_and_score() -> int:
@@ -348,3 +352,15 @@ async def test_alert_service_cooldown_dedupe_and_risk_alerts(monkeypatch) -> Non
     service2 = AlertService(TelegramClient(token=None, chat_id=None))
     fresh.alerted = True
     assert await service2.send_risk_alert(fresh, "rug_pull", "rugged") == "suppressed"
+
+
+@requires_services
+async def test_model_unavailable_lists_alternatives_or_accepts_listed(monkeypatch) -> None:
+    from backend.config.settings import get_settings
+
+    monkeypatch.setattr(get_settings().ai, "enabled", True)
+    a = GptAnalyst(client=fake_client([], available=False, listed=["gpt-5.6-sol", "gpt-5-mini", "whisper-1"]))
+    assert await a.verify_model() is False
+    assert "gpt-5.6-sol" in a.disabled_reason and "gpt-5-mini" in a.disabled_reason and "whisper" not in a.disabled_reason
+    b = GptAnalyst(client=fake_client([], available=False, listed=[get_settings().ai.model]))
+    assert await b.verify_model() is True and b.enabled and b.model_verified

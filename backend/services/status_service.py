@@ -255,7 +255,8 @@ async def model_status(session: AsyncSession) -> list[dict[str, Any]]:
 async def worker_heartbeats(session: AsyncSession) -> list[dict[str, Any]]:
     settings = get_settings()
     now = datetime.now(UTC)
-    rows = (await session.execute(select(WorkerHeartbeat).order_by(WorkerHeartbeat.last_heartbeat_at.desc()).limit(10))).scalars().all()
+    recent = datetime.now(UTC) - timedelta(hours=1)
+    rows = (await session.execute(select(WorkerHeartbeat).where(WorkerHeartbeat.last_heartbeat_at >= recent).order_by(WorkerHeartbeat.last_heartbeat_at.desc()).limit(5))).scalars().all()
     return [
         {
             "worker_id": r.worker_id,
@@ -264,7 +265,7 @@ async def worker_heartbeats(session: AsyncSession) -> list[dict[str, Any]]:
             "started_at": r.started_at.isoformat(),
             "last_heartbeat_at": r.last_heartbeat_at.isoformat(),
             "is_leader": r.is_leader,
-            "status": r.status,
+            "status": ("stopped" if r.status == "stopping" else "stale") if (now - r.last_heartbeat_at).total_seconds() > settings.scanner.stale_after_seconds else r.status,
             "stale": (now - r.last_heartbeat_at).total_seconds() > settings.scanner.stale_after_seconds,
             "stats": r.stats or {},
         }

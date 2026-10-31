@@ -175,3 +175,6 @@ async def test_pumpportal_client_subscribes_and_reconnects() -> None:
     assert methods.count("subscribeNewToken") >= 2
     assert any(s.get("method") == "subscribeTokenTrade" and fx.MINT in s.get("keys", []) for s in subscriptions[methods.index("subscribeNewToken", 1):])
     assert client.tracker.counters.reconnects >= 1
+    diag = client.diagnostics()
+    assert diag["messages"] >= 4 and diag["service_messages"] >= 2 and diag["samples"]
+    assert "Successfully subscribed" in diag["last_service_message"]
