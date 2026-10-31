@@ -11,6 +11,7 @@ import { LoginPage } from "./pages/Login";
 import { LogsPage } from "./pages/Logs";
 import { SettingsPage } from "./pages/Settings";
 import { StatusPage } from "./pages/Status";
+import { SurvivorsPage } from "./pages/Survivors";
 import { TokenSearchPage } from "./pages/TokenSearch";
 import { TradingPage } from "./pages/Trading";
 import { WalletTrackerPage } from "./pages/WalletTracker";
@@ -19,6 +20,7 @@ import { WalletDetailPage, WalletsPage } from "./pages/Wallets";
 const NAV: { id: string; label: string; icon: string }[] = [
   { id: "dashboard", label: "Dashboard", icon: "◫" },
   { id: "candidates", label: "Candidates", icon: "◆" },
+  { id: "survivors", label: "Survivors", icon: "⟰" },
   { id: "tracker", label: "Wallet tracker", icon: "👁" },
   { id: "wallets", label: "Wallets", icon: "◎" },
   { id: "search", label: "Token search", icon: "⌕" },
@@ -35,6 +37,8 @@ function Page(): JSX.Element {
   switch (route.path) {
     case "tracker":
       return <WalletTrackerPage />;
+    case "survivors":
+      return <SurvivorsPage />;
     case "candidates":
       return route.param ? <CandidateDetailPage mint={route.param} /> : <CandidatesPage />;
     case "wallets":

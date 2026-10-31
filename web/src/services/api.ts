@@ -176,6 +176,10 @@ export class ApiClient {
     this.request("POST", "/api/v1/journal", body);
   deleteJournal = (id: number): Promise<void> => this.request("DELETE", `/api/v1/journal/${id}`);
 
+  // ---- survivors (growth tracker) ---------------------------------------------
+  survivors = (query: { min_liquidity_usd?: number; max_age_days?: number; limit?: number }): Promise<{ items: Json[]; total: number }> =>
+    this.request("GET", "/api/v1/tokens/survivors", undefined, { query });
+
   // ---- wallet tracker -------------------------------------------------------
   trackedWallets = (): Promise<{ items: TrackedWallet[]; limit: number }> => this.request("GET", "/api/v1/tracked-wallets");
   addTrackedWallet = (body: TrackedWalletInput): Promise<{ wallet: TrackedWallet }> => this.request("POST", "/api/v1/tracked-wallets", body);

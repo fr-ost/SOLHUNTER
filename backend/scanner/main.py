@@ -50,6 +50,7 @@ class ScannerWorker:
         self.heartbeat = Heartbeat(self.stats)
         self.health: HealthServer | None = None
         self.evaluator: Any | None = None  # attached in build_evaluator()
+        self.growth: Any | None = None  # GrowthTracker (survivors 30m-7d)
         self._tasks: list[asyncio.Task[Any]] = []
         self._stop = asyncio.Event()
         self.started_at = datetime.now(UTC)
@@ -71,6 +72,8 @@ class ScannerWorker:
             data["pumpportal"] = self.pumpportal.diagnostics()
         if self.evaluator is not None:
             data["evaluator"] = self.evaluator.stats()
+        if self.growth is not None:
+            data["growth"] = self.growth.stats()
         return data
 
     def health_status(self) -> dict[str, Any]:
@@ -125,10 +128,13 @@ class ScannerWorker:
         self.tracker = TokenTracker(self.persistence, self.pumpportal, Deduplicator())
         await self.tracker.restore_checkpoint()
         self.build_evaluator()
+        from backend.scanner.growth import GrowthTracker
         from backend.services.wallet_watch import WalletWatch
 
         self.wallet_watch = WalletWatch(self)
         self.tracker.wallet_listeners.append(self.wallet_watch.on_tracked_trade)
+        self.growth = GrowthTracker(self)
+        self.tracker.retire_listeners.append(self.growth.schedule_after_tracking)
         async with session_scope() as session:
             await self.tracker.sync_tracked_wallets(session)
 
@@ -138,6 +144,8 @@ class ScannerWorker:
         self._tasks.append(asyncio.create_task(self._snapshot_loop(), name="snapshots"))
         self._tasks.append(asyncio.create_task(self._maintenance_loop(), name="maintenance"))
         self._tasks.append(asyncio.create_task(self._provider_probe_loop(), name="provider-probes"))
+        if self.growth is not None:
+            self._tasks.append(asyncio.create_task(self.growth.run(), name="growth"))
         if self.evaluator is not None:
             self._tasks.extend(self.evaluator.background_tasks())
         log.info("scanner.started", worker_id=self.heartbeat.worker_id)
@@ -284,6 +292,8 @@ class ScannerWorker:
         self._stop.set()
         if self.pumpportal:
             await self.pumpportal.stop()
+        if self.growth is not None:
+            await self.growth.stop()
         if self.evaluator is not None:
             try:
                 await self.evaluator.shutdown()

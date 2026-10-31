@@ -32,6 +32,7 @@ class Prediction:
     model_version: str
     uncertainty: dict[str, Any] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
+    p_2x_24h: float | None = None  # probability of +100% within 24h (moonshot target)
 
     def to_dict(self) -> dict[str, Any]:
         return dict(self.__dict__)
@@ -90,6 +91,9 @@ class HeuristicPredictor:
         downside = -(5.0 + 20.0 * rug)
         p_stop = max(0.05, min(0.9, 0.25 + 0.5 * rug - 0.3 * p10))
         ttt = 600.0 + 1200.0 * (1 - p10)
+        # moonshot prior: survivorship + growth evidence, heavily discounted
+        growth_s = _v(f, "growth_score", 0.0)
+        p2x = _sigmoid(-3.2 + 2.0 * growth_s + 1.0 * min(1.0, _v(f, "migrated", 0.0)) + 0.8 * p10 - 1.5 * rug)
         return Prediction(
             rug_risk=round(rug, 4),
             p10=round(p10, 4),
@@ -104,4 +108,5 @@ class HeuristicPredictor:
             model_version=self.version,
             uncertainty={"note": "heuristic baseline, no calibration data", "interval_p10": [max(0.0, p10 - 0.25), min(1.0, p10 + 0.25)]},
             notes=["Experimental: rule-based baseline used until validated models are trained."],
+            p_2x_24h=round(p2x, 4),
         )

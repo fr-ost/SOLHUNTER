@@ -69,8 +69,8 @@ class StageResult:
 @dataclass
 class PipelineResult:
     results: list[StageResult]
-    rejected: bool
-    hard_fail: bool
+    rejected: bool  # not qualified right now (soft) OR hard failure
+    hard_fail: bool  # final: rug / dump / bundle / manipulation - never re-qualifies
     candidate_eligible: bool
     rejection_reasons: list[str]
     quality_failures: list[str]

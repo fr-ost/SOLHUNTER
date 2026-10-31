@@ -57,6 +57,26 @@ services without code changes:
 7. **Learning** – after the outcome horizon the labeller turns snapshots into `training_samples`; the ML
    scheduler retrains daily when enough samples exist and activates better models.
 
+## Token lifecycle (why early tokens are not rejected)
+
+A Pump.fun token at minute two is *structurally* concentrated: the creator and a few snipers hold most of
+the float, there are a dozen holders and no history. Organic buyers arrive later. Judging every snapshot
+with the limits of a mature token rejects every launch, so evaluation is lifecycle-aware:
+
+| Phase | Age | What happens |
+|---|---|---|
+| **launch** | 0 - 30 min | Real-time tracking. Limits scale with age (`FILTER_*_CURVE`): at 1 min organic top-10 may be 85 %, at 15 min 55 %, at 1 h 42 %, at 1 day 30 %. Concentration is judged on *organic* holders (creator excluded; the developer stage judges the dev). Soft failures give the status **screening** ("not qualified yet") and the token keeps being evaluated. Only hard events are final: liquidity pull, developer dump, launch bundle still holding > 40 % after 5 min, confirmed manipulation, whale exit. Nothing is promoted or alerted before `RANK_MIN_CANDIDATE_AGE_MINUTES` (15). |
+| **survival** | 30 min - 24 h | Tracking ends after `SCANNER_TRACK_DURATION_MINUTES`; the **growth tracker** takes over with cheap DexScreener batch checks (30 tokens per call) at checkpoints (0.5 h, 1 h, 2 h, 3 h, 6 h, 12 h, 24 h ...) or every 15 min while the token is liquid and active. Each check stores a `growth` snapshot and computes growth metrics: liquidity depth and trend, holder growth per hour (Helius, budgeted), top-10 share change, drawdown from ATH, higher lows, market-cap change over 3-6 h, 24 h turnover, buy pressure, migration. A growth score >= `GROWTH_RETRACK_MIN_SCORE` with >= `GROWTH_RETRACK_MIN_LIQUIDITY_USD` puts the token **back into real-time tracking**, where the full pipeline (holders, whales, ML, GPT, alerts) runs again on fresh data. |
+| **established** | 1 - 7 days | Same growth checks, tighter concentration limits, the 24-hour "+100 %" model matters most. After 7 days the token is archived. |
+| **dead / archived** | - | No liquidity and no volume, hard failure, or too old. |
+
+Discovery is no longer only forward-looking: migrations of tokens the scanner never saw are tracked
+immediately, and DexScreener token profiles/boosts (teams that pay for marketing) are polled every 5
+minutes and scheduled for growth checks, so tokens launched before the scanner started can still be found.
+
+The ML dataset gets two label horizons: the 60-minute +10/15/20 % targets for the launch phase and
+24-hour +50 % / +100 % ("moonshot") targets trained on growth snapshots once enough labels exist.
+
 ## Reliability
 
 * Single active scanner: Redis leader lock (`SET NX PX` + refresh); a redeploy waits for the previous

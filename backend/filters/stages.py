@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from backend.config.settings import FilterSettings, get_settings
 from backend.filters.base import EvaluationContext, StageResult
+from backend.intelligence.maturity import thresholds_for
 from backend.models import WhaleSignal
 
 
@@ -96,19 +97,25 @@ def stage_holders(ctx: EvaluationContext) -> StageResult:
         return StageResult("s3", "holders", passed=True, score=0.4, reasons=[], metrics={}, data_available=False)
     reasons: list[str] = []
     hard = False
-    if h.largest_holder_pct is not None and h.largest_holder_pct > cfg.max_largest_holder_pct:
-        reasons.append(f"largest holder {h.largest_holder_pct:.0%} > {cfg.max_largest_holder_pct:.0%}")
-        if h.largest_holder_pct > cfg.max_largest_holder_pct * 2.5 and h.confidence != "low":
+    th = thresholds_for(ctx.state.age_at(ctx.now))
+    judged_top10 = h.organic_top10_pct if h.organic_top10_pct is not None else h.top10_pct
+    if h.largest_holder_pct is not None and h.largest_holder_pct > th.max_largest_holder_pct:
+        reasons.append(f"largest holder {h.largest_holder_pct:.0%} > {th.max_largest_holder_pct:.0%} allowed at {th.age_minutes:.0f}m")
+        # a single non-dev wallet with a dominant position after the launch minutes is a hard stop
+        if h.largest_holder_pct > max(0.5, th.max_largest_holder_pct * 2.5) and h.confidence != "low" and th.phase != "launch":
             hard = True
-    if h.top10_pct is not None and h.top10_pct > cfg.max_top10_pct:
-        reasons.append(f"top-10 holders {h.top10_pct:.0%} > {cfg.max_top10_pct:.0%}")
-    if h.top20_pct is not None and h.top20_pct > cfg.max_top20_pct:
-        reasons.append(f"top-20 holders {h.top20_pct:.0%} > {cfg.max_top20_pct:.0%}")
-    if h.holder_count is not None and h.holder_count < cfg.min_holders:
-        reasons.append(f"{h.holder_count} holders < {cfg.min_holders} ({h.holder_count_source})")
-    if h.bundled_wallets >= 5:
+    if judged_top10 is not None and judged_top10 > th.max_top10_pct:
+        reasons.append(f"organic top-10 {judged_top10:.0%} > {th.max_top10_pct:.0%} allowed at {th.age_minutes:.0f}m")
+    if h.top20_pct is not None and h.top20_pct > th.max_top20_pct:
+        reasons.append(f"top-20 holders {h.top20_pct:.0%} > {th.max_top20_pct:.0%} allowed at {th.age_minutes:.0f}m")
+    if h.holder_count is not None and h.holder_count < th.min_holders:
+        reasons.append(f"{h.holder_count} holders < {th.min_holders} expected at {th.age_minutes:.0f}m ({h.holder_count_source})")
+    if h.bundled_share_pct is not None and h.bundled_share_pct > cfg.bundle_hard_fail_share:
+        reasons.append(f"launch bundle still holds {h.bundled_share_pct:.0%} of supply")
+        hard = th.age_minutes >= 5  # give the bundle a few minutes to be absorbed; after that it is a stop
+    elif h.bundled_wallets >= 5:
         reasons.append(f"{h.bundled_wallets} wallets bought in the same instant at launch (bundle)")
-    return StageResult("s3", "holders", passed=not reasons, hard_fail=hard, score=h.score, reasons=reasons, metrics={"holder_count": h.holder_count, "source": h.holder_count_source, "largest_pct": h.largest_holder_pct, "top10_pct": h.top10_pct, "top20_pct": h.top20_pct, "growth_5m": h.holder_growth_5m, "bundled": h.bundled_wallets, "confidence": h.confidence})
+    return StageResult("s3", "holders", passed=not reasons, hard_fail=hard, score=h.score, reasons=reasons, metrics={"holder_count": h.holder_count, "source": h.holder_count_source, "largest_pct": h.largest_holder_pct, "top10_pct": h.top10_pct, "organic_top10_pct": h.organic_top10_pct, "top20_pct": h.top20_pct, "growth_5m": h.holder_growth_5m, "bundled": h.bundled_wallets, "bundled_share_pct": h.bundled_share_pct, "confidence": h.confidence, "thresholds": h.thresholds})
 
 
 # ----------------------------------------------------------------------------- stage 4
@@ -179,14 +186,15 @@ def stage_buyer_quality(ctx: EvaluationContext) -> StageResult:
     cfg = _cfg()
     w5 = ctx.state.window(300, ctx.now)
     reasons: list[str] = []
-    if w5.unique_buyers < cfg.min_unique_buyers_5m:
-        reasons.append(f"{w5.unique_buyers} unique buyers in 5m < {cfg.min_unique_buyers_5m}")
+    th = thresholds_for(ctx.state.age_at(ctx.now))
+    if w5.unique_buyers < th.min_unique_buyers_5m:
+        reasons.append(f"{w5.unique_buyers} unique buyers in 5m < {th.min_unique_buyers_5m} expected at {th.age_minutes:.0f}m")
     if w5.top_wallet_share > cfg.max_buyer_concentration_pct:
         reasons.append(f"one wallet is {w5.top_wallet_share:.0%} of 5m volume")
     smart = ctx.whales.smart_money_buyers if ctx.whales else 0
     independent = ctx.whales.independent_profitable_buyers if ctx.whales else 0
     new_ratio = (w5.new_buyers / w5.unique_buyers) if w5.unique_buyers else 0.0
-    score = _clamp(0.4 * min(1.0, w5.unique_buyers / (cfg.min_unique_buyers_5m * 3)) + 0.2 * new_ratio + 0.3 * min(1.0, smart / 3) + 0.1 * (1.0 - w5.top_wallet_share))
+    score = _clamp(0.4 * min(1.0, w5.unique_buyers / (max(1, th.min_unique_buyers_5m) * 3)) + 0.2 * new_ratio + 0.3 * min(1.0, smart / 3) + 0.1 * (1.0 - w5.top_wallet_share))
     return StageResult("s6", "buyer_quality", passed=not reasons, safety=False, score=score, reasons=reasons, metrics={"unique_buyers_5m": w5.unique_buyers, "new_buyers_5m": w5.new_buyers, "smart_money_buyers": smart, "independent_profitable_buyers": independent, "top_wallet_share": w5.top_wallet_share, "repeat_buyer_trades": w5.repeat_buyer_trades})
 
 

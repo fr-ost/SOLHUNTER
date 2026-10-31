@@ -97,6 +97,9 @@ def dataset_from_samples(samples: list[dict[str, Any]], feature_names: list[str]
         "close_return": np.array([float(s.get("close_return_pct") if s.get("close_return_pct") is not None else -100.0) for s in samples], dtype=np.float32),
         "min_return": np.array([float(s.get("min_return_pct") if s.get("min_return_pct") is not None else -100.0) for s in samples], dtype=np.float32),
         "time_to_10": np.array([float(s["time_to_10_s"]) if s.get("time_to_10_s") is not None else np.nan for s in samples], dtype=np.float32),
+        # 24h moonshot target: only samples with completed 24h labels carry a value (others NaN -> excluded)
+        "hit_100_24h": np.array([(1 if s.get("hit_100_24h") else 0) if s.get("label_24h_complete") else -1 for s in samples], dtype=np.int8),
+        "max_return_24h": np.array([float(s.get("max_return_24h_pct")) if s.get("max_return_24h_pct") is not None else np.nan for s in samples], dtype=np.float32),
     }
     times = np.array([s["snapshot_at"].timestamp() if isinstance(s["snapshot_at"], datetime) else float(s["snapshot_at"]) for s in samples])
     mints = np.array([s["mint"] for s in samples])
@@ -240,6 +243,17 @@ def train_all(samples: list[dict[str, Any]], version: str | None = None) -> list
         metrics[key] = m
         if m.get("auc") is None or m.get("auc", 0) < 0.6 or int(ds.y[key].sum()) < cfg.min_positive_samples:
             exp = True
+    # moonshot: +100% within 24h, trained on the subset with completed 24h labels
+    mask = ds.y["hit_100_24h"] >= 0
+    if mask.sum() >= 60 and len(np.unique(ds.y["hit_100_24h"][mask])) >= 2:
+        sub = Dataset(ds.X[mask], {k: v[mask] for k, v in ds.y.items()}, ds.times[mask], ds.mints[mask], ds.feature_names)
+        sub.y["close_return"] = sub.y["max_return_24h"]
+        m24, P, Y = walk_forward(sub, "hit_100_24h", max(2, min(n_folds, int(mask.sum()) // 50)), threshold=0.2)
+        calibrators["hit_100_24h"] = PlattCalibrator().fit(P, Y) if len(P) else PlattCalibrator()
+        estimators["hit_100_24h"] = _fit_classifier(sub.X, sub.y["hit_100_24h"])
+        metrics["hit_100_24h"] = {**m24, "samples": int(mask.sum())}
+    else:
+        metrics["hit_100_24h"] = {"note": f"{int(mask.sum())} samples with 24h labels - need 60"}
     bundles.append(TrainedBundle("breakout", version, ds.feature_names, estimators, calibrators, metrics, n, int(ds.y["hit_10"].sum()), exp, datetime.now(UTC)))
 
     # --- expected return ----------------------------------------------------------------------

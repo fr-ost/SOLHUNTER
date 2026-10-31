@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from backend.config.settings import get_settings
+from backend.intelligence.maturity import thresholds_for
 from backend.providers.helius import HolderDistribution
 from backend.scanner.state import TokenState
 
@@ -24,6 +25,9 @@ class HolderAnalysis:
     holder_growth_5m: int | None
     top10_change_pct: float | None
     bundled_wallets: int
+    organic_top10_pct: float | None = None  # top-10 excluding the creator wallet
+    bundled_share_pct: float | None = None  # share of circulating held by launch-bundle wallets
+    thresholds: dict[str, Any] = field(default_factory=dict)
     top_holders: list[dict[str, Any]] = field(default_factory=list)
     flags: list[str] = field(default_factory=list)
     score: float = 0.5  # 0 = terrible, 1 = healthy
@@ -58,15 +62,40 @@ def detect_bundles(state: TokenState, window_seconds: float = 2.0, min_wallets: 
     return bundled
 
 
+def bundled_share(state: TokenState, circulating: float | None, window_seconds: float = 2.0) -> float | None:
+    """Fraction of circulating supply still held by wallets that bought in the same instant at launch."""
+    if not circulating or circulating <= 0:
+        return None
+    firsts = sorted(((a.first_ts, w) for w, a in state.wallets.items() if w != state.creator and (a.first_ts - state.launch_time).total_seconds() <= 30), key=lambda x: x[0])
+    held = 0.0
+    i = 0
+    while i < len(firsts):
+        j = i
+        while j + 1 < len(firsts) and (firsts[j + 1][0] - firsts[i][0]).total_seconds() <= window_seconds:
+            j += 1
+        if j - i + 1 >= 3:
+            held += sum(max(0.0, state.wallets[w].balance_estimate) for _, w in firsts[i : j + 1])
+        i = j + 1
+    return min(1.0, held / circulating)
+
+
 def analyze_holders(state: TokenState, distribution: HolderDistribution | None, now: datetime | None = None) -> HolderAnalysis:
     settings = get_settings().filters
     now = now or datetime.now(UTC)
     flags: list[str] = []
+    th = thresholds_for(state.age_at(now))
+    organic_top10: float | None = None
+    bundle_share: float | None = None
     if distribution is not None:
         largest = distribution.largest_pct
         top10 = distribution.concentration(10)
         top20 = distribution.concentration(20)
         dev_pct = distribution.wallet_pct(state.creator)
+        base = distribution.circulating_excluding_infra or distribution.total_supply
+        if base:
+            non_dev = [h for h in distribution.top_holders if not h.is_infrastructure and h.owner != state.creator]
+            organic_top10 = min(1.0, sum(h.amount for h in non_dev[:10]) / base)
+            bundle_share = bundled_share(state, base)
         infra_pct = None
         if distribution.total_supply and distribution.circulating_excluding_infra is not None:
             infra_pct = 1.0 - distribution.circulating_excluding_infra / distribution.total_supply
@@ -91,6 +120,9 @@ def analyze_holders(state: TokenState, distribution: HolderDistribution | None, 
         top20 = sum(b for _, b in balances[:20]) / circulating
         dev_agg = state.wallets.get(state.creator) if state.creator else None
         dev_pct = (dev_agg.balance_estimate / circulating) if dev_agg else None
+        non_dev = [(w, b) for w, b in balances if w != state.creator]
+        organic_top10 = sum(b for _, b in non_dev[:10]) / circulating
+        bundle_share = bundled_share(state, circulating)
         infra_pct = None
         holder_count = len(balances)
         source = "stream_estimate"
@@ -113,18 +145,24 @@ def analyze_holders(state: TokenState, distribution: HolderDistribution | None, 
     bundled = detect_bundles(state)
 
     score = 1.0
-    if largest is not None and largest > settings.max_largest_holder_pct:
+    # Concentration is judged on ORGANIC holders (creator excluded; the developer stage handles the dev)
+    # against limits that tighten with age: a 2-minute-old token is allowed to look concentrated.
+    judged_top10 = organic_top10 if organic_top10 is not None else top10
+    if largest is not None and largest > th.max_largest_holder_pct:
         flags.append(f"largest_holder_{int(largest * 100)}pct")
-        score -= min(0.5, (largest - settings.max_largest_holder_pct) * 4)
-    if top10 is not None and top10 > settings.max_top10_pct:
-        flags.append(f"top10_{int(top10 * 100)}pct")
-        score -= min(0.4, (top10 - settings.max_top10_pct) * 2)
-    if top20 is not None and top20 > settings.max_top20_pct:
+        score -= min(0.5, (largest - th.max_largest_holder_pct) * 4)
+    if judged_top10 is not None and judged_top10 > th.max_top10_pct:
+        flags.append(f"top10_{int(judged_top10 * 100)}pct")
+        score -= min(0.4, (judged_top10 - th.max_top10_pct) * 2)
+    if top20 is not None and top20 > th.max_top20_pct:
         flags.append(f"top20_{int(top20 * 100)}pct")
         score -= 0.15
-    if holder_count is not None and holder_count < settings.min_holders:
+    if holder_count is not None and holder_count < th.min_holders:
         flags.append(f"few_holders_{holder_count}")
         score -= 0.25
+    if bundle_share is not None and bundle_share > settings.bundle_hard_fail_share:
+        flags.append(f"bundle_holds_{int(bundle_share * 100)}pct")
+        score -= 0.4
     if growth_5m is not None and growth_5m < settings.min_holder_growth_5m:
         flags.append("holder_growth_stalled")
         score -= 0.1
@@ -149,6 +187,9 @@ def analyze_holders(state: TokenState, distribution: HolderDistribution | None, 
         holder_growth_5m=growth_5m,
         top10_change_pct=top10_change,
         bundled_wallets=bundled,
+        organic_top10_pct=organic_top10,
+        bundled_share_pct=bundle_share,
+        thresholds=th.to_dict(),
         top_holders=top_holders,
         flags=flags,
         score=max(0.0, min(1.0, score)),

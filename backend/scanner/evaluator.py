@@ -30,6 +30,7 @@ from backend.ingestion.events import TradeEvent
 from backend.intelligence.developer import analyze_creator
 from backend.intelligence.holders import analyze_holders
 from backend.intelligence.manipulation import assess_manipulation
+from backend.intelligence.maturity import phase_for_age
 from backend.intelligence.relationships import (
     analyze_clusters,
     discover_funders,
@@ -84,7 +85,7 @@ class Evaluator:
         self.analyst = GptAnalyst()
         self.analyst_queue = AnalystQueue(self.analyst, on_result=self.on_gpt_result)
         self.alerts = AlertService()
-        self.counters: dict[str, int] = {"evaluations": 0, "enrichments": 0, "candidates": 0, "watchlist": 0, "rejected": 0, "hard_fails": 0, "errors": 0, "gpt_enqueued": 0, "alerts_sent": 0}
+        self.counters: dict[str, int] = {"evaluations": 0, "enrichments": 0, "candidates": 0, "watchlist": 0, "rejected": 0, "screening": 0, "hard_fails": 0, "errors": 0, "gpt_enqueued": 0, "alerts_sent": 0}
         self._recent_candidates: deque[datetime] = deque(maxlen=100)
         self._stop = asyncio.Event()
         if worker.tracker is not None:
@@ -197,7 +198,7 @@ class Evaluator:
     def _promising(self, cheap: PipelineResult, state: TokenState, kind: str) -> bool:
         if cheap.hard_fail or state.flags.get("hard_rejected"):
             return False
-        if kind == "m1" and not state.flags.get("manual"):
+        if kind == "m1" and not (state.flags.get("manual") or state.flags.get("source") == "growth"):
             return False
         if len(cheap.rejection_reasons) > 2:
             return False
@@ -298,18 +299,19 @@ class Evaluator:
 
     def _should_persist_score(self, kind: str, prev_status: str, new_status: str, result: PipelineResult) -> bool:
         if kind != "periodic":
-            return True  # scheduled m1/m3/m5/m10/m15 snapshots are the designed training/decision points
+            return True  # scheduled m1/m3/m5/m10/m15 and growth snapshots are the designed training/decision points
         return new_status in {"candidate", "watchlist"} or new_status != prev_status or result.hard_fail
 
     async def _persist(self, ctx: EvaluationContext, result: PipelineResult, ranking: RankingResult, session: AsyncSession) -> int:
         state = ctx.state
         now = ctx.now
         prev_status = state.status
-        new_status = ranking.status if ranking.status != "rejected" else ("rejected" if result.hard_fail else prev_status if prev_status in {"candidate", "watchlist"} and not result.rejected else "rejected")
+        new_status = ranking.status  # candidate / watchlist / screening / rejected (hard)
         if result.hard_fail:
             state.flags["hard_rejected"] = True
             self.counters["hard_fails"] += 1
-        self.counters[{"candidate": "candidates", "watchlist": "watchlist", "rejected": "rejected"}.get(new_status, "rejected")] += 1
+        self.counters[{"candidate": "candidates", "watchlist": "watchlist", "rejected": "rejected"}.get(new_status, "screening")] += 1
+        state.phase = phase_for_age(state.age_at(now)) if not result.hard_fail else state.phase
         if new_status == "candidate" and prev_status != "candidate":
             self._recent_candidates.append(now)
         kind = str(ctx.snapshot.get("snapshot_kind") or "periodic")
@@ -330,7 +332,10 @@ class Evaluator:
             mint=state.mint,
             snapshot_id=ctx.snapshot_id,
             scored_at=now,
-            status=new_status if new_status in {"candidate", "watchlist"} else "rejected",
+            status=new_status,
+            phase=state.phase,
+            growth_score=state.growth_score,
+            p_2x_24h=getattr(p, "p_2x_24h", None) if p else None,
             overall_score=ranking.overall_score,
             confidence=ranking.confidence,
             components=ranking.components,
@@ -365,6 +370,7 @@ class Evaluator:
                     breakout_p15=p.p15,
                     breakout_p20=p.p20,
                     expected_return_pct=p.expected_return_pct,
+                    p_2x_24h=getattr(p, "p_2x_24h", None),
                     expected_downside_pct=p.expected_downside_pct,
                     expected_time_to_target_s=p.expected_time_to_target_s,
                     p_stop_loss=p.p_stop_loss,

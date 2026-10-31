@@ -9,7 +9,7 @@ from typing import Any
 from backend.config.logging import get_logger
 from backend.config.settings import get_settings
 from backend.database.engine import session_scope
-from backend.ml.labeler import label_pending_snapshots
+from backend.ml.labeler import label_24h_outcomes, label_pending_snapshots
 from backend.ml.registry import load_predictor, train_and_store
 from backend.services import keys
 from backend.services.redis_client import RedisLock
@@ -61,6 +61,8 @@ class MLScheduler:
     async def label_once(self) -> None:
         async with session_scope() as session:
             n = await label_pending_snapshots(session, limit=300)
+        async with session_scope() as session:
+            await label_24h_outcomes(session, limit=300)
         self.labelled_total += n
         self.last_label_at = datetime.now(UTC)
 

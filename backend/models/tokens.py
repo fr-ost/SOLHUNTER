@@ -43,6 +43,20 @@ class Token(Base, TimestampMixin):
     tracking_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     total_supply: Mapped[float | None] = mapped_column(Float)
     metadata_json: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB(none_as_null=True))
+    # lifecycle / growth tracking
+    phase: Mapped[str] = mapped_column(String(16), default="launch", nullable=False, index=True)  # launch / survival / established / dead / archived
+    discovery_source: Mapped[str] = mapped_column(String(32), default="pumpportal", nullable=False)
+    next_growth_check_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    last_growth_check_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    growth_checks: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    growth_score: Mapped[float | None] = mapped_column(Float, index=True)
+    ath_price_usd: Mapped[float | None] = mapped_column(Float)
+    ath_market_cap_usd: Mapped[float | None] = mapped_column(Float)
+    peak_liquidity_usd: Mapped[float | None] = mapped_column(Float)
+    last_liquidity_usd: Mapped[float | None] = mapped_column(Float)
+    last_market_cap_usd: Mapped[float | None] = mapped_column(Float)
+    retracks: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_retrack_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     launches: Mapped[list[TokenLaunch]] = relationship(back_populates="token", cascade="all, delete-orphan")
     pools: Mapped[list[TokenPool]] = relationship(back_populates="token", cascade="all, delete-orphan")

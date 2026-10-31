@@ -136,6 +136,15 @@ class TokenState:
         self.alerted = False
         self.subscribed = False
         self.tracking_until: datetime | None = None
+        # lifecycle
+        self.phase: str = "launch"
+        self.discovery_source: str = "pumpportal"
+        self.growth: dict[str, Any] | None = None  # latest growth metrics (set by the growth tracker)
+        self.growth_score: float | None = None
+        self.ath_price_usd: float | None = None
+        self.ath_market_cap_usd: float | None = None
+        self.peak_liquidity_usd: float | None = None
+        self.next_growth_check_at: datetime | None = None
 
     # ------------------------------------------------------------------ ingestion
     def apply_create(self, ev: NewTokenEvent) -> None:

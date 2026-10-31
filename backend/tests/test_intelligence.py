@@ -43,7 +43,7 @@ def _fresh_state(now: datetime, age_seconds: int = 240) -> TokenState:
 # ----------------------------------------------------------------------------- holders
 def test_holder_analysis_from_distribution_excludes_infra_and_flags_concentration() -> None:
     now = datetime.now(UTC)
-    state = _fresh_state(now)
+    state = _fresh_state(now, age_seconds=7200)  # a 2-hour-old token is held to tight limits
     dist = HolderDistribution(
         mint=fx.MINT,
         total_supply=1_000_000_000.0,
@@ -66,6 +66,12 @@ def test_holder_analysis_from_distribution_excludes_infra_and_flags_concentratio
     assert abs(analysis.infra_excluded_pct - 0.5) < 1e-9
     assert any(f.startswith("largest_holder_") for f in analysis.flags)
     assert analysis.score < 1.0
+    assert analysis.organic_top10_pct is not None and analysis.organic_top10_pct < analysis.top10_pct  # creator excluded
+    assert analysis.thresholds["phase"] == "survival"
+    # the same distribution on a 2-minute-old token is NOT flagged for concentration: launches are concentrated
+    young = _fresh_state(now, age_seconds=120)
+    early = holders_mod.analyze_holders(young, dist, now)
+    assert not any(f.startswith("largest_holder_") or f.startswith("top10_") for f in early.flags)
 
 
 def test_holder_analysis_falls_back_to_stream_estimate() -> None:

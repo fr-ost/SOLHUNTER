@@ -21,6 +21,7 @@ COMPONENTS = [
     "expected_return",
     "risk_reward",
     "gpt",
+    "growth",
 ]
 
 
@@ -122,6 +123,10 @@ class Ranker:
             comps["ml_breakout"] = comps["expected_return"] = comps["risk_reward"] = None
 
         comps["gpt"] = _gpt_component(gpt_recommendation, gpt_probability)
+        growth = ctx.state.growth
+        comps["growth"] = _c(100.0 * float(growth.get("score") or 0.0)) if growth else None
+        if p is not None and getattr(p, "p_2x_24h", None) is not None and comps.get("ml_breakout") is not None:
+            comps["ml_breakout"] = _c(0.7 * comps["ml_breakout"] + 0.3 * 100.0 * float(p.p_2x_24h))
 
         # --- weighted average over available components ---------------------------------------------
         weights = {name: getattr(cfg, f"weight_{name}") for name in COMPONENTS}
@@ -183,14 +188,20 @@ class Ranker:
         confidence = "high" if conf_points >= 4 else ("medium" if conf_points >= 2 else "low")
 
         # --- status -----------------------------------------------------------------------------------
-        if pipeline.rejected:
+        age_minutes = ctx.state.age_at(ctx.now) / 60.0
+        too_young = age_minutes < cfg.min_candidate_age_minutes and not ctx.state.flags.get("manual")
+        if pipeline.hard_fail:
             status = "rejected"
-        elif pipeline.candidate_eligible and overall >= cfg.candidate_min_score:
+        elif pipeline.rejected:
+            status = "screening"  # not qualified yet; keeps being re-evaluated while it lives
+        elif pipeline.candidate_eligible and overall >= cfg.candidate_min_score and not too_young:
             status = "candidate"
         elif overall >= cfg.watchlist_min_score:
             status = "watchlist"
+            if too_young and pipeline.candidate_eligible and overall >= cfg.candidate_min_score:
+                explanation.append(f"candidate-grade score but only {age_minutes:.0f}m old (min {cfg.min_candidate_age_minutes}m)")
         else:
-            status = "rejected"
+            status = "screening"
         top = sorted(available.items(), key=lambda kv: kv[1] * weights[kv[0]], reverse=True)[:3]
         explanation.extend(f"{k}: {v:.0f}" for k, v in top)
         explanation.extend(f"penalty {k}: -{v:.0f}" for k, v in sorted(penalties.items(), key=lambda kv: -kv[1])[:3])

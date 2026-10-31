@@ -39,8 +39,18 @@ class FilterSettings(_Group):
     # Stage 1 - data validation
     max_data_age_seconds: int = 120
     min_token_age_seconds: int = 45
-    max_token_age_minutes: int = 360
+    max_token_age_minutes: int = 10_080  # 7 days: survivors are re-evaluated by the growth tracker
     min_trades_for_evaluation: int = 8
+
+    # Age-scaled limits ("age_minutes:value,..." interpolated in log-age). Early launches are structurally
+    # concentrated (dev + snipers hold most of the float before organic buyers arrive), so the limits
+    # tighten as the token matures instead of rejecting every 2-minute-old token.
+    top10_pct_curve: str = "1:0.85,5:0.70,15:0.55,60:0.42,360:0.35,1440:0.30,10080:0.25"
+    top20_pct_curve: str = "1:0.95,5:0.85,15:0.70,60:0.58,360:0.50,1440:0.45,10080:0.40"
+    largest_holder_curve: str = "1:0.35,5:0.25,15:0.18,60:0.12,360:0.10,1440:0.08,10080:0.06"
+    min_holders_curve: str = "1:5,3:12,5:20,15:40,60:120,360:250,1440:400,10080:600"
+    min_unique_buyers_5m_curve: str = "1:4,3:8,5:12,15:12,60:8,360:5,1440:3,10080:2"
+    bundle_hard_fail_share: float = 0.40  # bundled launch wallets holding more than this of circulating = hard fail
 
     # Stage 2 - developer analysis
     max_creator_prior_rugs: int = 0
@@ -95,6 +105,36 @@ class FilterSettings(_Group):
     min_breakout_p10: float = 0.25
 
 
+class GrowthSettings(_Group):
+    """Survivor / growth tracking of tokens from 30 minutes up to 7 days (prefix ``GROWTH_``)."""
+
+    model_config = SettingsConfigDict(env_prefix="GROWTH_", env_file=".env", extra="ignore")
+
+    enabled: bool = True
+    cycle_seconds: int = 60
+    max_tokens_per_cycle: int = 450  # 15 DexScreener batch calls per cycle (limit 300/min)
+    max_age_days: int = 7
+    min_tracking_trades_to_follow: int = 12  # a token must have shown some life while tracked to enter the schedule
+    checkpoint_hours: str = "0.5,1,2,3,6,12,24,36,48,72,96,120,168"
+    fast_interval_minutes: int = 15  # re-check interval while a token is liquid and active
+    fast_min_liquidity_usd: float = 8_000.0
+    retrack_min_score: float = 0.62  # growth score needed to put a survivor back into real-time tracking
+    retrack_min_liquidity_usd: float = 10_000.0
+    retrack_cooldown_minutes: int = 120
+    max_retracks_per_cycle: int = 5
+    discovery_enabled: bool = True  # DexScreener token profiles/boosts -> tokens we never saw launch
+    discovery_interval_minutes: int = 5
+    dead_liquidity_usd: float = 500.0
+    dead_after_hours_without_pair: int = 6
+    holder_refresh_hours: float = 3.0  # Helius holder count/concentration refresh for liquid survivors (credit budgeted)
+    holder_refresh_min_liquidity_usd: float = 8_000.0
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def checkpoints(self) -> list[float]:
+        return sorted({float(v) for v in _split_csv(self.checkpoint_hours)})
+
+
 class WhaleSettings(_Group):
     """Whale / smart-money engine thresholds (prefix ``WHALE_``)."""
 
@@ -132,7 +172,9 @@ class RankingSettings(_Group):
     weight_expected_return: float = 0.8
     weight_risk_reward: float = 1.0
     weight_gpt: float = 1.0
+    weight_growth: float = 1.5
 
+    min_candidate_age_minutes: int = 15  # never promote (or alert) in the first minutes: too noisy, too manipulable
     candidate_min_score: float = 68.0
     watchlist_min_score: float = 52.0
     gpt_min_score: float = 65.0
@@ -337,6 +379,7 @@ class Settings(BaseSettings):
     filters: FilterSettings = Field(default_factory=FilterSettings)
     ranking: RankingSettings = Field(default_factory=RankingSettings)
     whale: WhaleSettings = Field(default_factory=WhaleSettings)
+    growth: GrowthSettings = Field(default_factory=GrowthSettings)
     scanner: ScannerSettings = Field(default_factory=ScannerSettings)
     ai: AISettings = Field(default_factory=AISettings)
     telegram: TelegramSettings = Field(default_factory=TelegramSettings)

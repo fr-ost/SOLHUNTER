@@ -71,7 +71,7 @@ def test_healthy_token_passes_pipeline_and_ranks() -> None:
     assert 0 <= ranking.overall_score <= 100
     assert set(ranking.components) <= set(FEATURE_NAMES) | {"safety", "liquidity", "smart_money", "whale_accumulation", "buyer_quality", "volume_acceleration", "momentum", "ml_breakout", "expected_return", "risk_reward", "gpt"}
     assert "gpt" in ranking.missing_components  # no GPT analysis yet -> excluded from weighting
-    assert ranking.status in {"candidate", "watchlist", "rejected"}
+    assert ranking.status in {"candidate", "watchlist", "screening", "rejected"}
     assert ranking.explanation
 
 

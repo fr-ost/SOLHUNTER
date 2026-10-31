@@ -76,6 +76,23 @@ FEATURE_NAMES: list[str] = [
     "top_wallet_share_5m",
     "repeat_buyer_ratio_5m",
     "data_quality_score",
+    # lifecycle / growth (NaN while a token is only minutes old and has no growth history)
+    "age_hours",
+    "migrated",
+    "growth_score",
+    "mcap_change_pct",
+    "mcap_change_6h_pct",
+    "liquidity_change_pct",
+    "liquidity_trend_pct",
+    "holder_growth_pct_per_hour",
+    "drawdown_from_ath_growth_pct",
+    "higher_lows",
+    "volume_h1_over_mcap",
+    "volume_h24_over_mcap",
+    "buy_ratio_h1",
+    "buy_ratio_h24",
+    "top10_change_growth_pct",
+    "boosted",
 ]
 
 
@@ -183,7 +200,49 @@ def build_features(ctx: EvaluationContext) -> dict[str, float]:
         "repeat_buyer_ratio_5m": (w5.repeat_buyer_trades / w5.buys) if w5.buys else NAN,
         "data_quality_score": q_score,
     }
+    feats.update(_growth_feature_values(s.growth, age_hours=_f(snap.get("age_seconds")) / 3600.0 if snap.get("age_seconds") is not None else NAN, migrated=bool(s.migrated_at)))
     return {name: feats[name] for name in FEATURE_NAMES}
+
+
+def _growth_feature_values(growth: dict[str, Any] | None, age_hours: float, migrated: bool) -> dict[str, float]:
+    g = growth or {}
+    return {
+        "age_hours": age_hours,
+        "migrated": 1.0 if (migrated or g.get("migrated")) else 0.0,
+        "growth_score": _f(g.get("score")),
+        "mcap_change_pct": _f(g.get("mcap_change_pct")),
+        "mcap_change_6h_pct": _f(g.get("mcap_change_6h_pct")),
+        "liquidity_change_pct": _f(g.get("liquidity_change_pct")),
+        "liquidity_trend_pct": _f(g.get("liquidity_trend_pct")),
+        "holder_growth_pct_per_hour": _f(g.get("holder_growth_pct_per_hour")),
+        "drawdown_from_ath_growth_pct": _f(g.get("drawdown_from_ath_pct")),
+        "higher_lows": (1.0 if g.get("higher_lows") else 0.0) if g.get("higher_lows") is not None else NAN,
+        "volume_h1_over_mcap": _f(g.get("volume_h1_over_mcap")),
+        "volume_h24_over_mcap": _f(g.get("volume_h24_over_mcap")),
+        "buy_ratio_h1": _f(g.get("buy_ratio_h1")),
+        "buy_ratio_h24": _f(g.get("buy_ratio_h24")),
+        "top10_change_growth_pct": _f(g.get("top10_change_pct")),
+        "boosted": 1.0 if g.get("boosted") else 0.0,
+    }
+
+
+def growth_features(metrics: Any, point: Any, age_hours: float) -> dict[str, float | None]:
+    """Feature vector for a growth-check snapshot (no real-time stream data available)."""
+    feats = {name: NAN for name in FEATURE_NAMES}
+    feats.update(
+        {
+            "log_market_cap_usd": _log(point.market_cap_usd),
+            "log_liquidity_usd": _log(point.liquidity_usd),
+            "log_holder_count": _log(point.holder_count),
+            "top10_pct": _f(point.top10_pct),
+            "dev_holding_pct": _f(point.dev_holding_pct),
+            "pool_is_pump": 0.0 if point.migrated else 1.0,
+            "bonding_progress": 1.0 if point.migrated else NAN,
+            "data_quality_score": 0.6,
+        }
+    )
+    feats.update(_growth_feature_values(metrics.to_dict(), age_hours, point.migrated))
+    return features_json_safe(feats)
 
 
 def features_to_vector(features: dict[str, float], names: list[str] | None = None) -> list[float]:

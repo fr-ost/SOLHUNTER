@@ -129,6 +129,36 @@ class DexScreenerClient(HttpProvider):
         super().__init__("dexscreener", settings.dexscreener_base_url, rate_per_second=min(settings.dexscreener_rpm_pairs, 240) / 60.0, burst=8)
         self.enabled = settings.dexscreener_enabled
         self._cache_ttl = 20
+        # profiles/boosts endpoints have a separate 60/min limit
+        self._slow = HttpProvider("dexscreener", settings.dexscreener_base_url, rate_per_second=min(settings.dexscreener_rpm_other, 50) / 60.0, burst=3)
+
+    async def aclose(self) -> None:  # type: ignore[override]
+        await super().aclose()
+        await self._slow.aclose()
+
+    async def discovered_tokens(self) -> list[dict[str, Any]]:
+        """Solana tokens with a paid DexScreener profile or boost (teams that market themselves).
+
+        Uses ``/token-profiles/latest/v1``, ``/token-boosts/latest/v1`` and ``/token-boosts/top/v1`` (60 req/min class).
+        """
+        if not self.enabled:
+            return []
+        out: dict[str, dict[str, Any]] = {}
+        for path, kind in (("/token-profiles/latest/v1", "profile"), ("/token-boosts/latest/v1", "boost"), ("/token-boosts/top/v1", "boost_top")):
+            try:
+                data = await self._slow.request_json("GET", path, retries=1)
+            except ProviderError as exc:
+                log.debug("dexscreener.discovery_failed", path=path, error=str(exc)[:120])
+                continue
+            for row in data if isinstance(data, list) else []:
+                if str(row.get("chainId")) != CHAIN or not row.get("tokenAddress"):
+                    continue
+                mint = str(row["tokenAddress"])
+                entry = out.setdefault(mint, {"mint": mint, "kinds": [], "url": row.get("url"), "description": (row.get("description") or "")[:300], "links": row.get("links") or []})
+                entry["kinds"].append(kind)
+                if row.get("totalAmount") is not None:
+                    entry["boost_amount"] = row.get("totalAmount")
+        return list(out.values())
 
     async def token_pairs(self, mint: str, use_cache: bool = True) -> list[PairData]:
         """All pools for a token (``/token-pairs/v1/solana/{mint}``)."""

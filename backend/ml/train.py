@@ -14,7 +14,7 @@ import json
 from backend.config.logging import configure_logging, get_logger
 from backend.config.settings import get_settings
 from backend.database.engine import dispose_engine, session_scope
-from backend.ml.labeler import label_pending_snapshots
+from backend.ml.labeler import label_24h_outcomes, label_pending_snapshots
 from backend.ml.registry import train_and_store
 from backend.services.redis_client import close_redis
 
@@ -31,7 +31,9 @@ async def _run(args: argparse.Namespace) -> None:
             labelled += n
             if n < 500:
                 break
-    print(f"labelled {labelled} new snapshots")
+    async with session_scope() as session:
+        labelled_24h = await label_24h_outcomes(session, limit=5000)
+    print(f"labelled {labelled} new snapshots, {labelled_24h} 24h outcomes")
     if args.label_only:
         return
     async with session_scope() as session:

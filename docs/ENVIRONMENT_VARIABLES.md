@@ -56,7 +56,9 @@ All runtime thresholds in the `FILTER_*`, `RANK_*`, `WHALE_*`, `SCANNER_*`, `TEL
 | `SCANNER_HTTP_HEALTH_ENABLED` / `SCANNER_HTTP_HEALTH_PORT` | scanner | `true` / `8081` | Worker health endpoint. |
 | `SCANNER_OUTCOME_HORIZON_MINUTES` / `SCANNER_OUTCOME_LABEL_DELAY_MINUTES` | scanner | `60` / `65` | Outcome labelling horizon. |
 | `SCANNER_PUMP_*` | scanner | pump.fun constants | Bonding-curve constants (verify against pump.fun). |
-| `FILTER_*` | scanner | see `backend/config/settings.py` | All stage thresholds. |
+| `FILTER_*` | scanner | see `backend/config/settings.py` | All stage thresholds. Concentration/holder limits are age curves (`FILTER_TOP10_PCT_CURVE`, `FILTER_MIN_HOLDERS_CURVE`, ... as `age_minutes:value,...`). |
+| `GROWTH_*` | scanner | enabled, 60 s cycle, 450 tokens/cycle, 7 days, checkpoints, 15 min fast interval, retrack score 0.62 / $10k, discovery every 5 min, holder refresh 3 h | Survivor / growth tracking of tokens from 30 minutes to 7 days. |
+| `RANK_MIN_CANDIDATE_AGE_MINUTES` | scanner | `15` | Never promote or alert a token younger than this (wallet-tracker tokens excepted). |
 | `RANK_*` | scanner | see settings | Component weights, candidate/watchlist/alert/GPT score thresholds, hourly candidate cap. |
 | `WHALE_*` | scanner | see settings | Whale thresholds, smart-money criteria, cluster confidence. |
 | `EXEC_*` | both | `100,250,500`, fees | Execution analyzer sizes and fee assumptions. |

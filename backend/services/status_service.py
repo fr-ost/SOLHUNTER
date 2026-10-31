@@ -105,7 +105,10 @@ async def counts_24h(session: AsyncSession) -> dict[str, int]:
     since = datetime.now(UTC) - timedelta(hours=24)
     discovered = await session.scalar(select(func.count()).select_from(Token).where(Token.first_seen_at >= since)) or 0
     rejected = await session.scalar(
-        select(func.count()).select_from(Token).where(Token.first_seen_at >= since, Token.status == "rejected")
+        select(func.count()).select_from(Token).where(Token.first_seen_at >= since, Token.status.in_(["rejected", "dead"]))
+    ) or 0
+    screening = await session.scalar(
+        select(func.count()).select_from(Token).where(Token.first_seen_at >= since, Token.status.in_(["screening", "tracking"]), Token.phase != "dead")
     ) or 0
     candidates = await session.scalar(
         select(func.count(func.distinct(CandidateScore.mint))).where(
@@ -123,6 +126,7 @@ async def counts_24h(session: AsyncSession) -> dict[str, int]:
     return {
         "discovered": int(discovered),
         "rejected": int(rejected),
+        "screening": int(screening),
         "candidates": int(candidates),
         "watchlist": int(watchlist),
         "high_risk_alerts": int(high_risk_alerts),

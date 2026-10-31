@@ -66,6 +66,65 @@ async def recent_tokens(
     return {"items": rows_to_dicts(list(rows), exclude={"metadata_json"}), "total": int(total), "limit": limit, "offset": offset}
 
 
+@router.get("/survivors")
+async def survivors(
+    min_liquidity_usd: float = Query(5_000.0, ge=0),
+    max_age_days: float = Query(7.0, ge=0.01, le=30),
+    limit: int = Query(100, ge=1, le=300),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict[str, Any]:
+    """Tokens between 30 minutes and 7 days old that are alive and being re-checked by the growth tracker."""
+    from datetime import timedelta
+
+    now = utcnow()
+    stmt = (
+        select(Token)
+        .where(
+            Token.phase.in_(["survival", "established", "launch"]),
+            Token.growth_checks > 0,
+            Token.last_liquidity_usd >= min_liquidity_usd,
+            Token.launch_time >= now - timedelta(days=max_age_days),
+            Token.status != "rejected",
+        )
+        .order_by(Token.growth_score.desc().nulls_last(), Token.last_liquidity_usd.desc())
+        .limit(limit)
+    )
+    rows = (await session.execute(stmt)).scalars().all()
+    mints = [t.mint for t in rows]
+    latest: dict[str, dict[str, Any]] = {}
+    if mints:
+        sub = (
+            select(TokenSnapshot.mint, func.max(TokenSnapshot.captured_at).label("mx"))
+            .where(TokenSnapshot.mint.in_(mints), TokenSnapshot.snapshot_kind == "growth")
+            .group_by(TokenSnapshot.mint)
+            .subquery()
+        )
+        snaps = (await session.execute(select(TokenSnapshot).join(sub, (TokenSnapshot.mint == sub.c.mint) & (TokenSnapshot.captured_at == sub.c.mx)))).scalars().all()
+        for s in snaps:
+            latest[s.mint] = {"captured_at": s.captured_at.isoformat(), "price_usd": s.price_usd, "market_cap_usd": s.market_cap_usd, "liquidity_usd": s.liquidity_usd, "growth": (s.data_quality or {}).get("growth"), "volume_h24_usd": (s.data_quality or {}).get("volume_h24_usd"), "buys_h1": (s.data_quality or {}).get("buys_h1"), "sells_h1": (s.data_quality or {}).get("sells_h1")}
+        scores = (await session.execute(select(CandidateScore).where(CandidateScore.mint.in_(mints), CandidateScore.is_latest.is_(True)))).scalars().all()
+        score_map = {sc.mint: sc for sc in scores}
+    else:
+        score_map = {}
+    items = []
+    for t in rows:
+        sc = score_map.get(t.mint)
+        age_h = (now - (t.launch_time or t.first_seen_at)).total_seconds() / 3600.0
+        items.append(
+            {
+                **orm_to_dict(t, exclude={"metadata_json"}),
+                "age_hours": round(age_h, 2),
+                "boosted": bool((t.metadata_json or {}).get("dexscreener_boosted")),
+                "latest": latest.get(t.mint),
+                "score": sc.overall_score if sc else None,
+                "score_status": sc.status if sc else None,
+                "rug_risk": sc.rug_risk if sc else None,
+                "p_2x_24h": sc.p_2x_24h if sc else None,
+            }
+        )
+    return {"items": items, "total": len(items)}
+
+
 @router.get("/{mint}")
 async def token_detail(mint: str, session: AsyncSession = Depends(get_db_session)) -> dict[str, Any]:
     token = await session.get(Token, mint)

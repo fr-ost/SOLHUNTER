@@ -109,6 +109,7 @@ class ModelPredictor:
         notes: list[str] = []
         rug = base.rug_risk
         p10, p15, p20 = base.p10, base.p15, base.p20
+        p2x = base.p_2x_24h
         er, downside, ttt, p_stop = base.expected_return_pct, base.expected_downside_pct, base.expected_time_to_target_s, base.p_stop_loss
         uncertainty: dict[str, Any] = {}
         rb = self.bundles.get("rug_risk")
@@ -125,6 +126,11 @@ class ModelPredictor:
             p20 = self._prob(bb, "hit_20", X) if "hit_20" in bb.estimators else min(p15 or 0, p20 or 0)
             uncertainty["breakout_auc_p10"] = bb.metrics.get("hit_10", {}).get("auc")
             uncertainty["breakout_brier_p10"] = bb.metrics.get("hit_10", {}).get("brier")
+            if "hit_100_24h" in bb.estimators:
+                p2x = self._prob(bb, "hit_100_24h", X)
+                uncertainty["moonshot_auc_24h"] = bb.metrics.get("hit_100_24h", {}).get("auc")
+            else:
+                notes.append("24h moonshot model not trained yet: heuristic prior used")
         else:
             notes.append("breakout model missing: heuristic used")
         eb = self.bundles.get("expected_return")
@@ -159,6 +165,7 @@ class ModelPredictor:
             model_version=self.version,
             uncertainty=uncertainty,
             notes=notes,
+            p_2x_24h=round(p2x, 4) if p2x is not None else None,
         )
 
 
@@ -198,6 +205,9 @@ async def training_samples_rows(session: AsyncSession, limit: int = 200_000) -> 
             "close_return_pct": r.close_return_pct,
             "min_return_pct": r.min_return_pct,
             "time_to_10_s": r.time_to_10_s,
+            "label_24h_complete": r.label_24h_complete,
+            "hit_100_24h": r.hit_100_24h,
+            "max_return_24h_pct": r.max_return_24h_pct,
         }
         for r in rows
     ]

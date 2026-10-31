@@ -41,6 +41,7 @@ class TokenTracker:
         self.trade_listeners: list[Any] = []  # callables (state, event) -> None, e.g. the evaluator's position tracker
         self.tracked_wallets: dict[str, dict[str, Any]] = {}  # address -> config (manual wallet tracker)
         self.wallet_listeners: list[Any] = []  # async callables (state, event, config) for tracked-wallet trades
+        self.retire_listeners: list[Any] = []  # callables (state, reason) when a token leaves real-time tracking
         self.tracked_wallet_trades = 0
 
     # ------------------------------------------------------------------ raw entry
@@ -168,7 +169,12 @@ class TokenTracker:
         state = self.states.get(ev.mint)
         self.persistence.incr_stat("migrations")
         if state is None:
-            return
+            # Completing the bonding curve is the strongest survivorship signal on Pump.fun: start following
+            # the token even if we never tracked its launch (e.g. launched before the scanner started).
+            state = await self.track_manually(ev.mint, reason="migrated to AMM")
+            state.flags["manual"] = False
+            state.flags["source"] = "migration"
+            state.discovery_source = "migration"
         state.apply_migration(ev)
         self.persistence.add_migration(ev)
         self.persistence.add_raw(ev.source, "migrate", ev.dedupe_key, ev.mint, ev.raw)
@@ -226,10 +232,19 @@ class TokenTracker:
         return True
 
     def _retire(self, state: TokenState, reason: str, status: str = "archived") -> None:
-        state.status = status if state.status not in {"candidate", "watchlist"} else state.status
+        if status == "dead":
+            state.status = "dead"
+            state.phase = "dead"
+        elif state.status not in {"candidate", "watchlist", "screening"}:
+            state.status = status
         state.status_reason = reason
         self.states.pop(state.mint, None)
         self._pending_unsubscribe.append(state.mint)
+        for listener in self.retire_listeners:
+            try:
+                listener(state, reason)
+            except Exception:  # noqa: BLE001
+                log.exception("tracker.retire_listener_error")
         self.persistence.add_token(state)
         self.persistence.incr_stat("retired")
 
@@ -245,7 +260,8 @@ class TokenTracker:
                 self._retire(state, "no trading activity", status="dead")
                 retired += 1
             elif idle > 1500 and state.status not in {"candidate", "watchlist"}:
-                self._retire(state, "inactive for 25 minutes", status="dead")
+                # quiet, not dead: the growth tracker keeps checking it on its schedule
+                self._retire(state, "inactive for 25 minutes", status="archived")
                 retired += 1
         if retired:
             await self._apply_subscriptions()

@@ -119,6 +119,9 @@ tokens being discovered within a minute.
 * **Dashboard**: candidates, watchlist, whale activity, cost projection, scanner health.
 * **Settings**: tune filter thresholds, ranking weights, alert thresholds live.
 * **Telegram**: candidate alerts and urgent warnings; a quiet day with zero alerts is normal.
+* **Survivors**: tokens 30 minutes to 7 days old that are alive, re-checked for growth (liquidity, holders,
+  drawdown, turnover). Strong growers are pulled back into real-time analysis automatically. Candidates are
+  never promoted in the first 15 minutes.
 * **Wallet tracker**: paste any wallet address to follow it. SolHunter records its Pump.fun/PumpSwap trades
   in real time, sends a Telegram alert on buys/sells (per-wallet minimum size, 5-minute cooldown per token),
   and runs the full safety + ranking analysis on every token it buys. Up to `MAX_TRACKED_WALLETS` (100).

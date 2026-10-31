@@ -6,7 +6,7 @@ import { useDebouncedLiveVersion } from "../hooks/useLive";
 import { useApi } from "../hooks/useSettings";
 import type { CandidateItem } from "../types/api";
 
-type Status = "candidate" | "watchlist" | "rejected" | "all";
+type Status = "candidate" | "watchlist" | "screening" | "rejected" | "all";
 type Sort = "score" | "newest" | "liquidity" | "p10" | "rug";
 
 const sorters: Record<Sort, (a: CandidateItem, b: CandidateItem) => number> = {
@@ -45,7 +45,7 @@ export function CandidatesPage(): JSX.Element {
           </button>
         }
       >
-        <Tabs value={status} onChange={setStatus} options={[{ id: "candidate", label: "Candidates" }, { id: "watchlist", label: "Watchlist" }, { id: "rejected", label: "Rejected" }, { id: "all", label: "All" }]} />
+        <Tabs value={status} onChange={setStatus} options={[{ id: "candidate", label: "Candidates" }, { id: "watchlist", label: "Watchlist" }, { id: "screening", label: "Screening" }, { id: "rejected", label: "Rejected" }, { id: "all", label: "All" }]} />
         <div className="inline">
           <div>
             <label>sort</label>

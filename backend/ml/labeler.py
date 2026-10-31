@@ -95,6 +95,63 @@ def compute_outcome(
     )
 
 
+async def label_24h_outcomes(session: AsyncSession, limit: int = 300, now: datetime | None = None) -> int:
+    """Fill the 24-hour moonshot labels for samples whose snapshot is older than 24h (+ delay)."""
+    settings = get_settings()
+    now = now or datetime.now(UTC)
+    ready_before = now - timedelta(hours=24, minutes=settings.scanner.outcome_label_delay_minutes - settings.scanner.outcome_horizon_minutes + 5)
+    pending = (
+        await session.execute(
+            select(TrainingSample).where(TrainingSample.label_24h_complete.is_(False), TrainingSample.snapshot_at < ready_before).order_by(TrainingSample.snapshot_at.asc()).limit(limit)
+        )
+    ).scalars().all()
+    if not pending:
+        return 0
+    cost = settings.ml.fee_and_slippage_pct
+    for sample in pending:
+        entry = sample.entry_price_sol
+        end = sample.snapshot_at + timedelta(hours=24)
+        if not entry or entry <= 0:
+            sample.label_24h_complete = True
+            sample.alive_24h = False
+            continue
+        trade_max = (
+            await session.execute(
+                select(func.max(TokenTransaction.price_sol)).where(TokenTransaction.mint == sample.mint, TokenTransaction.block_time > sample.snapshot_at, TokenTransaction.block_time <= end, TokenTransaction.price_sol.is_not(None))
+            )
+        ).scalar()
+        snaps = (
+            await session.execute(
+                select(TokenSnapshot.captured_at, TokenSnapshot.price_sol, TokenSnapshot.liquidity_usd)
+                .where(TokenSnapshot.mint == sample.mint, TokenSnapshot.captured_at > sample.snapshot_at, TokenSnapshot.captured_at <= end, TokenSnapshot.price_sol.is_not(None))
+                .order_by(TokenSnapshot.captured_at.asc())
+            )
+        ).all()
+        snap_prices = [float(p) for _, p, _ in snaps]
+        candidates = [float(trade_max)] if trade_max is not None else []
+        candidates.extend(snap_prices)
+        if not candidates:
+            sample.max_return_24h_pct = 0.0
+            sample.close_return_24h_pct = -100.0
+            sample.hit_50_24h = False
+            sample.hit_100_24h = False
+            sample.alive_24h = False
+            sample.label_24h_complete = True
+            continue
+        max_ret = (max(candidates) / entry - 1.0) * 100.0
+        close_ret = (snap_prices[-1] / entry - 1.0) * 100.0 if snap_prices else None
+        last_liq = snaps[-1][2] if snaps else None
+        sample.max_return_24h_pct = round(max_ret, 4)
+        sample.close_return_24h_pct = round(close_ret, 4) if close_ret is not None else None
+        sample.hit_50_24h = max_ret >= 50.0 + cost
+        sample.hit_100_24h = max_ret >= 100.0 + cost
+        sample.alive_24h = bool(snaps) and (last_liq is None or last_liq >= settings.growth.dead_liquidity_usd) and (close_ret is None or close_ret > -85.0)
+        sample.label_24h_complete = True
+    await session.flush()
+    log.info("labeler.labelled_24h", samples=len(pending))
+    return len(pending)
+
+
 async def label_pending_snapshots(session: AsyncSession, limit: int = 200, now: datetime | None = None) -> int:
     settings = get_settings()
     now = now or datetime.now(UTC)

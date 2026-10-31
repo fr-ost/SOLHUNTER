@@ -94,6 +94,9 @@ async def _fresh_clients() -> AsyncIterator[None]:
     reset_engine_for_tests()
     reset_redis_for_tests()
     reload_settings()
+    from backend.providers.base import ProviderTracker
+
+    ProviderTracker._registry.clear()  # noqa: SLF001 - provider status is process-global; isolate tests
     if SERVICES_AVAILABLE:
         engine = get_engine()
         tables = ", ".join(f'"{t.name}"' for t in Base.metadata.sorted_tables)
