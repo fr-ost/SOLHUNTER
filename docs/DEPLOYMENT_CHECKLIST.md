@@ -15,7 +15,7 @@
 | 11 | GPT analysis works with a valid API key | ⚠️ untested live | Implemented against the official SDK (`responses.parse`) with strict schema; tested with a fake client. Model availability is verified at start-up; confirm `analyst.model_verified` in logs. |
 | 12 | Spending controls work | ✅ | Daily/monthly/per-token limits tested. |
 | 13 | Telegram alerts work | ⚠️ untested live | Client tested with mocked Bot API (incl. 429); needs real token/chat id. |
-| 14 | Web dashboard connects to the deployed API | ✅ built into the image | The Dockerfile builds `web/` and the API serves it at `/`; log in with `API_KEYS`. Browser rendering not exercised in the build sandbox. |
+| 14 | Web dashboard connects to the deployed API | ✅ built into the image | The Dockerfile builds `web/` and the API serves it at `/`; log in with `PASSWORD`. Browser rendering not exercised in the build sandbox. |
 | 15 | API authentication works | ✅ | Auth tests + production boot test (401 without key). |
 | 16 | No localhost dependency in production config | ✅ | Production validator warns on localhost URLs; Dockerfile/start script bind `0.0.0.0:$PORT`; dashboard uses same origin. |
 | 17 | Railway deployment instructions complete | ✅ | `docs/RAILWAY_DEPLOYMENT.md`, `docs/ENVIRONMENT_VARIABLES.md`. |

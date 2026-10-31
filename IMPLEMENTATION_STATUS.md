@@ -45,7 +45,7 @@ _Last updated: 2026-10-30 — backend test run: **105 passed** (`pytest -q`, Pos
 | `HELIUS_API_KEY` | holder distribution, creator history, funders | stream-based estimates only, lower confidence |
 | `OPENAI_API_KEY` | GPT analysis | ranking without the GPT component, alerts sent immediately |
 | `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | alerts | alerts recorded as suppressed in the DB |
-| `API_KEYS` / `API_ADMIN_KEYS` | dashboard login / settings changes | API refuses requests in production |
+| `PASSWORD` | dashboard login (also settings access) | API refuses requests in production |
 
 ## Test coverage (backend)
 
@@ -61,6 +61,6 @@ labeller/training/registry · GPT analyst/queue/spend · Telegram/alerts · prod
 2. Watch the scanner logs for the first `token.discovered` events and inspect `raw_events` to confirm
    the PumpPortal field mapping; adjust `backend/ingestion/normalizer.py` if a field differs.
 3. Confirm `analyst.model_verified` (or set `AI_MODEL`), send a Telegram test alert, set pricing variables.
-4. Open the Railway URL, log in with `API_KEYS`, verify the dashboard shows the live scanner.
+4. Open the Railway URL, log in with your `PASSWORD`, verify the dashboard shows the live scanner.
 5. After 24–72 h: check `/api/v1/status/models` for the first trained versions and
    `/api/v1/history/outcomes/summary` for realised candidate outcomes; tune `FILTER_*`/`RANK_*`.

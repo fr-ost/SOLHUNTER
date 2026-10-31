@@ -4,7 +4,7 @@ import { useSettings } from "../hooks/useSettings";
 import { ApiClient, ApiError } from "../services/api";
 import { defaultBaseUrl } from "../services/storage";
 
-/** Shown until an API key is saved. Validates the key against the live API before storing it. */
+/** Shown until the password is saved. Validates it against the live API before storing it. */
 export function LoginPage(): JSX.Element {
   const { settings, update } = useSettings();
   const [apiKey, setApiKey] = useState("");
@@ -19,7 +19,7 @@ export function LoginPage(): JSX.Element {
     setError(null);
     const key = apiKey.trim();
     if (!key) {
-      setError("Enter the API key (one of API_KEYS on the SolHunter service).");
+      setError("Enter the password (the PASSWORD variable on your SolHunter service).");
       return;
     }
     setBusy(true);
@@ -29,7 +29,7 @@ export function LoginPage(): JSX.Element {
       await client.systemStatus();
       await update(candidate);
     } catch (err) {
-      if (err instanceof ApiError && err.isAuth) setError("Invalid API key.");
+      if (err instanceof ApiError && err.isAuth) setError("Invalid password.");
       else setError(err instanceof ApiError ? err.userMessage : String(err));
     } finally {
       setBusy(false);
@@ -43,14 +43,14 @@ export function LoginPage(): JSX.Element {
           <img src="/favicon.png" alt="" />
           <h1>SolHunter</h1>
         </div>
-        <p className="small muted">Solana token research scanner. Sign in with the API key configured on your SolHunter service (<span className="mono">API_KEYS</span>).</p>
+        <p className="small muted">Solana token research scanner. Sign in with the password configured on your SolHunter service (<span className="mono">PASSWORD</span>).</p>
         <div className="form">
           <div>
-            <label>API key</label>
+            <label>Password</label>
             <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} autoComplete="current-password" autoFocus />
           </div>
           <div>
-            <label>Admin key (optional - only needed to change runtime settings)</label>
+            <label>Separate admin key (advanced, optional - leave empty; your password already allows settings changes)</label>
             <input type="password" value={adminKey} onChange={(e) => setAdminKey(e.target.value)} autoComplete="off" />
           </div>
           <button type="button" className="small" onClick={() => setAdvanced((a) => !a)} style={{ alignSelf: "flex-start" }}>

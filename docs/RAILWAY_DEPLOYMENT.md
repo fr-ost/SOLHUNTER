@@ -13,14 +13,9 @@ Total: 3 services, about 30 minutes of setup. No local machine is needed after t
 
 You need three kinds of keys. Only the first is mandatory to boot; the others unlock features.
 
-### A1. Your own dashboard passwords (mandatory)
-SolHunter protects its API and dashboard with keys you invent. Generate two long random strings:
-
-```bash
-openssl rand -hex 32     # -> API_KEYS      (dashboard login)
-openssl rand -hex 32     # -> API_ADMIN_KEYS (changing settings from the dashboard)
-```
-No terminal? Use any password generator (40+ random characters). Keep them in a password manager.
+### A1. Your dashboard password (mandatory)
+Pick any password you like (plain text, e.g. `moonshot2026`). You will set it as `PASSWORD` and type it
+once on the dashboard login screen. It also unlocks the Settings page.
 
 ### A2. Helius API key (strongly recommended, free)
 Helius provides on-chain holder data, creator history and wallet funding links.
@@ -85,8 +80,7 @@ SERVICE_ROLE=all
 LOG_FORMAT=json
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 REDIS_URL=${{Redis.REDIS_URL}}
-API_KEYS=<paste your first random string>
-API_ADMIN_KEYS=<paste your second random string>
+PASSWORD=<your password>
 PUBLIC_API_BASE_URL=https://<your generated domain>
 HELIUS_API_KEY=<helius key or leave empty>
 OPENAI_API_KEY=<sk-... or leave empty>
@@ -115,8 +109,7 @@ Open the **Deploy logs** and look for, in order:
 → `pumpportal.connected` → `scanner.started`. If `OPENAI_API_KEY` is set you also see
 `analyst.model_verified` (or `analyst.model_unavailable` — then fix `AI_MODEL`).
 
-Then open `https://<your domain>/` in a browser, enter your `API_KEYS` value (and optionally the admin
-key) on the login screen. The dashboard shows the scanner as **running**, providers as **connected**, and
+Then open `https://<your domain>/` in a browser and enter your `PASSWORD` on the login screen. The dashboard shows the scanner as **running**, providers as **connected**, and
 tokens being discovered within a minute.
 
 ---
@@ -124,7 +117,7 @@ tokens being discovered within a minute.
 ## Part D — Day-to-day use
 
 * **Dashboard**: candidates, watchlist, whale activity, cost projection, scanner health.
-* **Settings** (admin key): tune filter thresholds, ranking weights, alert thresholds live.
+* **Settings**: tune filter thresholds, ranking weights, alert thresholds live.
 * **Telegram**: candidate alerts and urgent warnings; a quiet day with zero alerts is normal.
 * **Paper trading / journal**: record manual trades; performance by signal type and model version.
 * **Logs & Status**: provider status, GPT spend, model versions, recent logs — all in the dashboard.
@@ -161,6 +154,6 @@ The dashboard **Status → Costs** page shows month-to-date and projected spend.
 | Build fails at `npm run build` | Check the deploy logs; the web build needs `web/package-lock.json` (committed). Retry the deploy. |
 | `/health` OK but dashboard says scanner offline | Logs: `scanner.standby` means another instance holds the lock (replicas > 1 or a previous deploy still stopping) — wait 60 s or set replicas to 1. |
 | `migrations.schema_not_ready` | Only in split mode when the scanner starts before the API; it retries for 3 minutes. |
-| Login says invalid key | Use the exact `API_KEYS` value (no spaces). |
+| Login says invalid password | Use the exact `PASSWORD` value (no leading/trailing spaces). |
 | No tokens discovered | Check `pumpportal` in Status → Providers; the client reconnects automatically. |
 | GPT disabled | Status → AI shows the reason (model unavailable, spend limit, missing key). |

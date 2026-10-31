@@ -14,7 +14,7 @@ zero candidates is a normal outcome.
 SolHunter (one container: API + dashboard + scanner) + Railway PostgreSQL + Railway Redis.
 Follow **[docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md)** — it covers where to get every key
 (Helius, OpenAI, Telegram), the exact Railway clicks and variables, and verification. Then open your
-Railway URL in a browser and log in with the `API_KEYS` value you chose.
+Railway URL in a browser and log in with the `PASSWORD` you chose.
 
 ## What is inside
 

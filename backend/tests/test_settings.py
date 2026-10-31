@@ -20,7 +20,7 @@ def test_allowed_origins_parsed() -> None:
 def test_production_validation_flags_problems() -> None:
     s = Settings(app_env="production", database_url="postgresql://x@localhost/db", redis_url="redis://localhost", api_keys="", api_admin_keys="", _env_file=None)
     problems = s.validate_for_production()
-    assert any("API_KEYS" in p for p in problems)
+    assert any("PASSWORD" in p for p in problems)
     assert any("DATABASE_URL" in p for p in problems)
     assert any("REDIS_URL" in p for p in problems)
 
@@ -30,7 +30,7 @@ def test_production_validation_passes_with_proper_config() -> None:
         app_env="production",
         database_url="postgresql://u:p@postgres.railway.internal:5432/railway",
         redis_url="redis://default:pw@redis.railway.internal:6379",
-        api_keys="k1",
+        password="my simple password",
         openai_api_key="sk",
         _env_file=None,
     )
@@ -47,3 +47,8 @@ def test_nested_group_env_prefixes(monkeypatch) -> None:
     assert s.ranking.candidate_min_score == 80
     assert s.scanner.snapshot_schedule == [1, 5, 15]
     assert s.execution.trade_sizes == [100.0, 250.0, 500.0]
+
+
+def test_password_is_both_login_and_admin_key() -> None:
+    s = Settings(password="hunter2", api_keys="", api_admin_keys="", _env_file=None)
+    assert s.api_key_list == ["hunter2"] and s.admin_key_list == ["hunter2"]

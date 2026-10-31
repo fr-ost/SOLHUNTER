@@ -27,7 +27,7 @@ export function SettingsPage(): JSX.Element {
       return;
     }
     if (!form.apiKey.trim()) {
-      setResult({ kind: "error", text: "An API key is required." });
+      setResult({ kind: "error", text: "The password is required." });
       return;
     }
     await update({ ...form, apiBaseUrl: base });
@@ -68,7 +68,7 @@ export function SettingsPage(): JSX.Element {
       remote.reload();
       setResult({ kind: "info", text: `Applied ${Object.keys(values).length} override(s). The scanner picks them up within a minute.` });
     } catch (err) {
-      setResult({ kind: "error", text: err instanceof ApiError ? (err.isForbidden ? "An admin key is required to change runtime settings (set it above)." : err.userMessage) : String(err) });
+      setResult({ kind: "error", text: err instanceof ApiError ? (err.isForbidden ? "Not allowed to change runtime settings: use the PASSWORD or an API_ADMIN_KEYS key." : err.userMessage) : String(err) });
     } finally {
       setSaving(false);
     }
@@ -92,11 +92,11 @@ export function SettingsPage(): JSX.Element {
             <input placeholder={defaultBaseUrl()} value={form.apiBaseUrl} onChange={(e) => setForm({ ...form, apiBaseUrl: e.target.value })} />
           </div>
           <div>
-            <label>API key (one of API_KEYS)</label>
+            <label>Password (PASSWORD)</label>
             <input type="password" value={form.apiKey} onChange={(e) => setForm({ ...form, apiKey: e.target.value })} autoComplete="off" />
           </div>
           <div>
-            <label>admin key (optional, one of API_ADMIN_KEYS - needed only to change runtime settings)</label>
+            <label>separate admin key (advanced, optional - the password already allows settings changes)</label>
             <input type="password" value={form.adminKey} onChange={(e) => setForm({ ...form, adminKey: e.target.value })} autoComplete="off" />
           </div>
           <div className="row">

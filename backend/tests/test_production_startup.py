@@ -34,7 +34,8 @@ def test_api_boots_like_railway_and_stops_on_sigterm() -> None:
         "PORT": str(port),
         "DATABASE_URL": TEST_DATABASE_URL.replace("localhost", "127.0.0.1"),
         "REDIS_URL": TEST_REDIS_URL.replace("localhost", "127.0.0.1"),
-        "API_KEYS": "prod-key",
+        "PASSWORD": "prod-key",
+        "API_KEYS": "",
         "API_ADMIN_KEYS": "",
         "SERVICE_ROLE": "all",  # combined mode: API + dashboard + embedded scanner in one process
         "PUMPPORTAL_ENABLED": "false",

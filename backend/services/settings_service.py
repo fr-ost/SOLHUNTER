@@ -23,7 +23,7 @@ log = get_logger(__name__)
 
 OVERRIDABLE_GROUPS = ("filters", "ranking", "whale", "scanner", "telegram", "execution", "risk", "ml", "ai")
 _NEVER_OVERRIDE = {"telegram.bot_token", "telegram.chat_id", "ai.input_cost_per_1m_usd"}
-_SECRET_FIELDS = {"openai_api_key", "helius_api_key", "api_keys", "api_admin_keys", "database_url", "redis_url", "bot_token", "chat_id"}
+_SECRET_FIELDS = {"openai_api_key", "helius_api_key", "password", "api_keys", "api_admin_keys", "database_url", "redis_url", "bot_token", "chat_id"}
 
 
 def overridable_keys(settings: Settings | None = None) -> dict[str, Any]:

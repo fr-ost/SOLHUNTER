@@ -294,8 +294,9 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # --- api security --------------------------------------------------------------
-    api_keys: str = ""  # comma separated read/write keys
-    api_admin_keys: str = ""  # comma separated admin keys
+    password: str | None = None  # simple dashboard login; also grants settings (admin) access
+    api_keys: str = ""  # optional extra comma separated read/write keys (advanced)
+    api_admin_keys: str = ""  # optional extra comma separated admin keys (advanced)
     cors_allowed_origins: str = ""  # comma separated extra origins (the built-in dashboard is same-origin)
     rate_limit_per_minute: int = 120
     rate_limit_burst: int = 40
@@ -367,12 +368,18 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def api_key_list(self) -> list[str]:
-        return _split_csv(self.api_keys)
+        keys = _split_csv(self.api_keys)
+        if self.password and self.password.strip():
+            keys.append(self.password.strip())
+        return keys
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def admin_key_list(self) -> list[str]:
-        return _split_csv(self.api_admin_keys)
+        keys = _split_csv(self.api_admin_keys)
+        if self.password and self.password.strip():
+            keys.append(self.password.strip())
+        return keys
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -393,7 +400,7 @@ class Settings(BaseSettings):
         if not self.is_production:
             return problems
         if not self.api_key_list and not self.admin_key_list:
-            problems.append("API_KEYS or API_ADMIN_KEYS must be set in production")
+            problems.append("PASSWORD must be set in production (dashboard login)")
         if "localhost" in self.database_url or "127.0.0.1" in self.database_url:
             problems.append("DATABASE_URL points at localhost in production")
         if "localhost" in self.redis_url or "127.0.0.1" in self.redis_url:

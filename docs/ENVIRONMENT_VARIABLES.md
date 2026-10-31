@@ -17,8 +17,8 @@ All runtime thresholds in the `FILTER_*`, `RANK_*`, `WHALE_*`, `SCANNER_*`, `TEL
 | `RUN_MIGRATIONS_ON_START` | all/api=`true`, split scanner=`false` | `true` | Advisory-locked `alembic upgrade head` at start. |
 | `MIGRATION_WAIT_TIMEOUT_SECONDS` | scanner | `180` | How long the scanner waits for the schema. |
 | `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` | both | `5` / `5` | Connection pool. |
-| `API_KEYS` | api | empty | Comma-separated keys; dashboard login. Required in production. |
-| `API_ADMIN_KEYS` | api | empty | Comma-separated admin keys (settings changes from the dashboard). |
+| `PASSWORD` | api | empty | Dashboard login password (any text); also allows settings changes. Required in production. |
+| `API_KEYS` / `API_ADMIN_KEYS` | api | empty | Optional extra read-only / admin keys (advanced; the password already covers both). |
 | `CORS_ALLOWED_ORIGINS` | api | empty | Extra origins; the built-in dashboard is same-origin and needs none. |
 | `RATE_LIMIT_PER_MINUTE` / `RATE_LIMIT_BURST` | api | `120` / `40` | Per-key/IP token bucket (Redis). |
 | `WS_MAX_CONNECTIONS` | api | `50` | WebSocket client cap. |
