@@ -66,8 +66,9 @@ def test_api_boots_like_railway_and_stops_on_sigterm() -> None:
         assert ready.status_code == 200, ready.text
         body = ready.json()
         assert body["database"] and body["redis"] and body["schema_revision"]
-        # production: OpenAPI disabled (the dashboard shell or 404 is served instead), auth enforced
-        assert httpx.get(f"{base}/openapi.json", timeout=5).status_code in (404, 200) and b"openapi" not in httpx.get(f"{base}/openapi.json", timeout=5).content[:200].lower() or httpx.get(f"{base}/openapi.json", timeout=5).status_code == 404
+        # production: OpenAPI schema disabled (the dashboard shell or a 404 is served instead)
+        spec = httpx.get(f"{base}/openapi.json", timeout=5)
+        assert spec.status_code == 404 or b'"openapi"' not in spec.content[:500]
         assert httpx.get(f"{base}/api/v1/dashboard", timeout=5).status_code == 401
         ok = httpx.get(f"{base}/api/v1/status/system", headers={"X-API-Key": "prod-key"}, timeout=10)
         assert ok.status_code == 200
