@@ -26,7 +26,7 @@ def build_engine(settings: Settings | None = None) -> AsyncEngine:
         pool_pre_ping=True,
         pool_recycle=1800,
         echo=settings.db_echo,
-        connect_args={"server_settings": {"application_name": f"gemfinder-{settings.service_role}"}},
+        connect_args={"server_settings": {"application_name": f"solhunter-{settings.service_role}"}},
     )
 
 

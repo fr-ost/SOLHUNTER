@@ -1,1 +1,1 @@
-"""GemFinder AI - ingestion package."""
+"""SolHunter - ingestion package."""

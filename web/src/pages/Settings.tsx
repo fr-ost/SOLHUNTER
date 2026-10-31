@@ -4,10 +4,10 @@ import { errorMessage, useAsync } from "../hooks/useAsync";
 import { useLive } from "../hooks/useLive";
 import { useSettings } from "../hooks/useSettings";
 import { ApiClient, ApiError } from "../services/api";
-import { ensureHostPermission, type AppSettings } from "../services/storage";
+import { defaultBaseUrl, type AppSettings } from "../services/storage";
 
 export function SettingsPage(): JSX.Element {
-  const { settings, update, api } = useSettings();
+  const { settings, update, api, signOut } = useSettings();
   const live = useLive();
   const [form, setForm] = useState<AppSettings>(settings);
   const [testing, setTesting] = useState(false);
@@ -22,17 +22,12 @@ export function SettingsPage(): JSX.Element {
   const save = async (): Promise<void> => {
     setResult(null);
     const base = form.apiBaseUrl.trim().replace(/\/+$/, "");
-    if (!/^https:\/\//.test(base)) {
-      setResult({ kind: "error", text: "The API base URL must start with https:// (Railway provides HTTPS domains)." });
+    if (base && !/^https?:\/\//.test(base)) {
+      setResult({ kind: "error", text: "The API base URL must start with http:// or https://, or be left empty to use this page's origin." });
       return;
     }
-    if (/localhost|127\.0\.0\.1/.test(base)) {
-      setResult({ kind: "error", text: "localhost is not a valid production API URL - use your Railway domain." });
-      return;
-    }
-    const granted = await ensureHostPermission(base);
-    if (!granted) {
-      setResult({ kind: "error", text: "Host permission for this origin was not granted; the extension cannot call it." });
+    if (!form.apiKey.trim()) {
+      setResult({ kind: "error", text: "An API key is required." });
       return;
     }
     await update({ ...form, apiBaseUrl: base });
@@ -93,8 +88,8 @@ export function SettingsPage(): JSX.Element {
       <Card title="Connection" right={<span className={`live ${live.status}`}><span className="dot" /> {live.status}</span>}>
         <div className="form">
           <div>
-            <label>API base URL (your Railway gemfinder-api domain)</label>
-            <input placeholder="https://your-gemfinder-api.up.railway.app" value={form.apiBaseUrl} onChange={(e) => setForm({ ...form, apiBaseUrl: e.target.value })} />
+            <label>API base URL override (leave empty to use this page&apos;s origin: {defaultBaseUrl()})</label>
+            <input placeholder={defaultBaseUrl()} value={form.apiBaseUrl} onChange={(e) => setForm({ ...form, apiBaseUrl: e.target.value })} />
           </div>
           <div>
             <label>API key (one of API_KEYS)</label>
@@ -108,12 +103,15 @@ export function SettingsPage(): JSX.Element {
             <button className="primary" onClick={() => void save()} disabled={testing}>
               save & test
             </button>
-            <button onClick={() => void test()} disabled={testing || !form.apiBaseUrl}>
+            <button onClick={() => void test()} disabled={testing || !form.apiKey}>
               {testing ? <Spinner /> : "test connection"}
+            </button>
+            <button className="danger" onClick={signOut} title="forget the keys stored in this browser">
+              sign out
             </button>
           </div>
           {result ? <Banner kind={result.kind}>{result.text}</Banner> : null}
-          <p className="faint tiny">Keys are stored only in this browser profile (chrome.storage.local). Never paste provider secrets (Helius/OpenAI) here - those live on the Railway services.</p>
+          <p className="faint tiny">Keys are stored only in this browser (localStorage). Never paste provider secrets (Helius/OpenAI/Telegram) here - those live on the server.</p>
         </div>
       </Card>
       <Card title="Runtime overrides" right={remote.data ? <Badge>{Object.keys(remote.data.overrides).length} active</Badge> : null}>

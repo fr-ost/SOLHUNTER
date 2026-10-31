@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-PREFIX = "gemfinder"
+PREFIX = "solhunter"
 
 EVENTS_CHANNEL = f"{PREFIX}:events"
 SCANNER_LEADER_LOCK = f"{PREFIX}:scanner:leader"

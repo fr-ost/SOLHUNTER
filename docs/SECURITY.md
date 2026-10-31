@@ -10,8 +10,8 @@
   separate (`API_ADMIN_KEYS`) and required for settings changes. Keys are compared with constant-time
   comparison. WebSocket clients authenticate with the same key (`?token=`). In production the API refuses
   to serve protected routes if no keys are configured.
-* **CORS**: only `chrome-extension://<CHROME_EXTENSION_ID>` and explicitly configured origins are allowed
-  in production (no wildcard).
+* **CORS**: the dashboard is served from the same origin as the API, so no cross-origin access is needed;
+  only explicitly configured `CORS_ALLOWED_ORIGINS` are allowed in production (no wildcard).
 * **Rate limiting**: Redis token bucket per key/IP (`RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_BURST`).
 * **Input validation**: pydantic models on every request body/query; bounded `limit` values; mint and
   address lengths validated.

@@ -1,6 +1,6 @@
 # API reference (summary)
 
-Base URL: the Railway domain of `gemfinder-api`. All `/api/v1/*` endpoints require `X-API-Key: <key>`
+Base URL: the Railway domain of `solhunter-api`. All `/api/v1/*` endpoints require `X-API-Key: <key>`
 (or `Authorization: Bearer <key>`). Admin-only endpoints need a key from `API_ADMIN_KEYS`.
 Responses are JSON; timestamps are ISO-8601 UTC. Rate limiting returns `429` with `Retry-After`.
 Interactive docs (`/docs`) are available only outside production.

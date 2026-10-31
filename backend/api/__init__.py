@@ -1,1 +1,1 @@
-"""GemFinder AI - api package."""
+"""SolHunter - api package."""

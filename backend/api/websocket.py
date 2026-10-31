@@ -28,7 +28,7 @@ async def websocket_events(websocket: WebSocket) -> None:
     await websocket.accept()
     await live_hub.add(websocket)
     try:
-        await websocket.send_json({"type": "hello", "service": "gemfinder-api"})
+        await websocket.send_json({"type": "hello", "service": "solhunter-api"})
         while True:
             try:
                 msg = await asyncio.wait_for(websocket.receive_text(), timeout=30)

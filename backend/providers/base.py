@@ -166,7 +166,7 @@ class HttpProvider:
         self._client = httpx.AsyncClient(
             base_url=base_url,
             timeout=timeout or get_settings().provider_http_timeout_seconds,
-            headers={"User-Agent": "GemFinderAI/0.1 (+research tool)", "Accept": "application/json"},
+            headers={"User-Agent": "SolHunterAI/0.1 (+research tool)", "Accept": "application/json"},
             http2=False,
         )
 

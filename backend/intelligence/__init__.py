@@ -1,1 +1,1 @@
-"""GemFinder AI - intelligence package."""
+"""SolHunter - intelligence package."""

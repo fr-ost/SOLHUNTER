@@ -1,1 +1,1 @@
-"""GemFinder AI - whale_engine package."""
+"""SolHunter - whale_engine package."""

@@ -2,7 +2,7 @@
 
 | # | Requirement | Status | How verified |
 |---|---|---|---|
-| 1 | API starts successfully | ✅ | `backend/tests/test_production_startup.py` boots `scripts/start_api.sh` with `APP_ENV=production` and migrations enabled; `/health` 200, `/ready` 200. |
+| 1 | API starts successfully | ✅ | `backend/tests/test_production_startup.py` boots `scripts/start.sh` (`SERVICE_ROLE=all`) with `APP_ENV=production` and migrations enabled; `/health` 200, `/ready` 200, embedded scanner reaches `running`. |
 | 2 | Scanner runs independently | ✅ | `test_worker_starts_heartbeats_and_stops_cleanly`: worker acquires the leader lock, heartbeats, serves `/health`, stops on request. Runs without the API. |
 | 3 | PostgreSQL migrations work | ✅ | Alembic initial migration applied in every test session; `alembic check` reports no drift. |
 | 4 | Redis connections work | ✅ | Rate limiting, dedupe, leader lock, counters exercised in tests. |
@@ -15,9 +15,9 @@
 | 11 | GPT analysis works with a valid API key | ⚠️ untested live | Implemented against the official SDK (`responses.parse`) with strict schema; tested with a fake client. Model availability is verified at start-up; confirm `analyst.model_verified` in logs. |
 | 12 | Spending controls work | ✅ | Daily/monthly/per-token limits tested. |
 | 13 | Telegram alerts work | ⚠️ untested live | Client tested with mocked Bot API (incl. 429); needs real token/chat id. |
-| 14 | Chrome extension connects to the deployed API | ⚠️ needs manual check | `npm run typecheck && npm run build` pass; load `extension/dist` unpacked, set base URL/API key in Settings, set `CHROME_EXTENSION_ID` on the API. |
+| 14 | Web dashboard connects to the deployed API | ✅ built into the image | The Dockerfile builds `web/` and the API serves it at `/`; log in with `API_KEYS`. Browser rendering not exercised in the build sandbox. |
 | 15 | API authentication works | ✅ | Auth tests + production boot test (401 without key). |
-| 16 | No localhost dependency in production config | ✅ | Production validator warns on localhost URLs; Dockerfiles/scripts bind `0.0.0.0:$PORT`; extension default URL is empty. |
+| 16 | No localhost dependency in production config | ✅ | Production validator warns on localhost URLs; Dockerfile/start script bind `0.0.0.0:$PORT`; dashboard uses same origin. |
 | 17 | Railway deployment instructions complete | ✅ | `docs/RAILWAY_DEPLOYMENT.md`, `docs/ENVIRONMENT_VARIABLES.md`. |
 | 18 | Automated tests pass | ✅ | `pytest -q` (see IMPLEMENTATION_STATUS.md for the count). |
 | 19 | No secrets committed | ✅ | `.env` ignored, `.env.example` placeholders, test asserts no `sk-` in the example. |

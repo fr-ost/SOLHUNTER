@@ -1,6 +1,7 @@
 # Environment variables
 
-`api` = gemfinder-api service, `scanner` = gemfinder-scanner service, `both` = set on both.
+Default setup: ONE `solhunter` service (`SERVICE_ROLE=all`) — set everything there. The `api`/`scanner`
+column only matters if you split roles into two services.
 All runtime thresholds in the `FILTER_*`, `RANK_*`, `WHALE_*`, `SCANNER_*`, `TELEGRAM_*`, `EXEC_*`,
 `RISK_*`, `ML_*`, `AI_*` groups can also be changed at runtime through `PUT /api/v1/settings`
 (admin key); environment values are the defaults, database overrides win.
@@ -8,17 +9,17 @@ All runtime thresholds in the `FILTER_*`, `RANK_*`, `WHALE_*`, `SCANNER_*`, `TEL
 | Variable | Service | Default | Purpose |
 |---|---|---|---|
 | `APP_ENV` | both | `development` | `production` enables strict checks (auth required, docs disabled). |
+| `SERVICE_ROLE` | both | `all` | `all` = API + dashboard + scanner in one process; `api` / `scanner` for split deployments. |
 | `LOG_LEVEL` / `LOG_FORMAT` | both | `INFO` / `json` | Structured logs; `console` for local dev. |
 | `PORT` | api | injected by Railway | API bind port (`0.0.0.0`). |
 | `DATABASE_URL` | both | localhost | PostgreSQL URL; `postgresql://` is converted to asyncpg automatically. Use `${{Postgres.DATABASE_URL}}`. |
 | `REDIS_URL` | both | localhost | Redis URL. Use `${{Redis.REDIS_URL}}`. |
-| `RUN_MIGRATIONS_ON_START` | api=`true`, scanner=`false` | `false` | Advisory-locked `alembic upgrade head` at start. |
+| `RUN_MIGRATIONS_ON_START` | all/api=`true`, split scanner=`false` | `true` | Advisory-locked `alembic upgrade head` at start. |
 | `MIGRATION_WAIT_TIMEOUT_SECONDS` | scanner | `180` | How long the scanner waits for the schema. |
 | `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` | both | `5` / `5` | Connection pool. |
-| `API_KEYS` | api | empty | Comma-separated read/write keys (extension). Required in production. |
-| `API_ADMIN_KEYS` | api | empty | Comma-separated admin keys (settings changes). |
-| `CHROME_EXTENSION_ID` | api | empty | Allows origin `chrome-extension://<id>` in CORS. |
-| `CORS_ALLOWED_ORIGINS` | api | empty | Extra comma-separated origins. |
+| `API_KEYS` | api | empty | Comma-separated keys; dashboard login. Required in production. |
+| `API_ADMIN_KEYS` | api | empty | Comma-separated admin keys (settings changes from the dashboard). |
+| `CORS_ALLOWED_ORIGINS` | api | empty | Extra origins; the built-in dashboard is same-origin and needs none. |
 | `RATE_LIMIT_PER_MINUTE` / `RATE_LIMIT_BURST` | api | `120` / `40` | Per-key/IP token bucket (Redis). |
 | `WS_MAX_CONNECTIONS` | api | `50` | WebSocket client cap. |
 | `PUBLIC_API_BASE_URL` | both | empty | Public API URL (used in alert links). |

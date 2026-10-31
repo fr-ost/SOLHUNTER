@@ -17,7 +17,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "useDefineForClassFields": true,
-    "types": ["chrome", "vite/client"]
+    "types": ["vite/client"]
   },
   "include": ["src"]
 }

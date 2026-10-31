@@ -1,4 +1,4 @@
-import type { AppSettings } from "./storage";
+import { effectiveBaseUrl, type AppSettings } from "./storage";
 import type {
   AiStatus,
   CandidateDetail,
@@ -47,7 +47,7 @@ export class ApiError extends Error {
   }
 
   get userMessage(): string {
-    if (this.status === 0) return "Cannot reach the API. Check the base URL in Settings and that the Railway service is running.";
+    if (this.status === 0) return "Cannot reach the API. Check that the SolHunter service is running (and the base URL override in Settings, if any).";
     if (this.status === 401) return "Unauthorized: the API key is missing or invalid (Settings).";
     if (this.status === 403) return "Forbidden: this action needs an admin key (Settings).";
     if (this.status === 429) return "Rate limited by the API - slow down and retry in a moment.";
@@ -71,17 +71,18 @@ const qs = (query?: Query): string => {
 export class ApiClient {
   constructor(private readonly config: AppSettings) {}
 
+  /** Configured once an API key exists; the base URL always resolves (page origin by default). */
   get configured(): boolean {
-    return Boolean(this.config.apiBaseUrl);
+    return Boolean(this.config.apiKey);
   }
 
   get baseUrl(): string {
-    return this.config.apiBaseUrl;
+    return effectiveBaseUrl(this.config);
   }
 
   wsUrl(): string | null {
-    if (!this.config.apiBaseUrl) return null;
-    const url = new URL(this.config.apiBaseUrl);
+    if (!this.configured) return null;
+    const url = new URL(this.baseUrl);
     url.protocol = url.protocol === "http:" ? "ws:" : "wss:";
     url.pathname = `${url.pathname.replace(/\/$/, "")}/ws`;
     url.search = `?token=${encodeURIComponent(this.config.apiKey)}`;
@@ -89,14 +90,13 @@ export class ApiClient {
   }
 
   async request<T>(method: string, path: string, body?: unknown, opts: { admin?: boolean; query?: Query } = {}): Promise<T> {
-    if (!this.config.apiBaseUrl) throw new ApiError(0, "API base URL not configured");
     const key = opts.admin && this.config.adminKey ? this.config.adminKey : this.config.apiKey;
     const headers: Record<string, string> = { Accept: "application/json" };
     if (key) headers["X-API-Key"] = key;
     if (body !== undefined) headers["Content-Type"] = "application/json";
     let response: Response;
     try {
-      response = await fetch(`${this.config.apiBaseUrl}${path}${qs(opts.query)}`, {
+      response = await fetch(`${this.baseUrl}${path}${qs(opts.query)}`, {
         method,
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -143,7 +143,7 @@ export class ApiClient {
   tokenSnapshots = (mint: string, limit = 300): Promise<{ items: Snapshot[] }> => this.request("GET", `/api/v1/tokens/${encodeURIComponent(mint)}/snapshots`, undefined, { query: { limit } });
   tokenTransactions = (mint: string, limit = 100): Promise<{ items: Json[] }> => this.request("GET", `/api/v1/tokens/${encodeURIComponent(mint)}/transactions`, undefined, { query: { limit } });
   tokenRiskEvents = (mint: string): Promise<{ items: Json[] }> => this.request("GET", `/api/v1/tokens/${encodeURIComponent(mint)}/risk-events`);
-  trackToken = (mint: string, reason?: string): Promise<{ queued: boolean; mint: string }> => this.request("POST", "/api/v1/tokens/track", { mint, reason: reason ?? "requested from extension" });
+  trackToken = (mint: string, reason?: string): Promise<{ queued: boolean; mint: string }> => this.request("POST", "/api/v1/tokens/track", { mint, reason: reason ?? "requested from dashboard" });
 
   // ---- wallets / whales -----------------------------------------------------
   topWallets = (query: { category?: string; sort?: string; limit?: number }): Promise<{ items: WalletProfile[] }> => this.request("GET", "/api/v1/wallets/top", undefined, { query });

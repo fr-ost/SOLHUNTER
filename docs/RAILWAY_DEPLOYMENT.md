@@ -1,138 +1,166 @@
-# Deploying GemFinder AI to Railway (GitHub → Railway)
+# SolHunter on Railway — complete setup guide
 
-This guide deploys four Railway services from this repository: **gemfinder-api**, **gemfinder-scanner**,
-**PostgreSQL** and **Redis**. Both application services build from the same repo with different Dockerfiles
-and start commands. The scanner is a persistent worker – never configure it as a cron job.
+SolHunter runs 24/7 as **one Railway service** (API + web dashboard + scanner in a single container) plus
+Railway's **PostgreSQL** and **Redis**. You control everything from the dashboard at your Railway URL.
+Total: 3 services, about 30 minutes of setup. No local machine is needed after the first push.
 
-> Railway's UI and feature names change. Verify against https://docs.railway.com before relying on
-> any step marked *(verify)*. Note that Railway announced that config-as-code files (`railway.json` /
-> `railway.toml`) are deprecated for new services in favour of Infrastructure-as-Code, so this project
-> relies on **Dockerfiles + service settings/variables**, which work regardless.
+> Railway's UI changes over time; names below match the current dashboard. Where a step may differ it is
+> marked *(check)*.
 
-## 0. Prerequisites
+---
 
-* A GitHub repository containing this code (push your branch/main).
-* A Railway account and project.
-* Credentials you want to use (all optional at first boot, but the product needs them to be useful):
-  * Helius API key (free tier) – holder data, creator history, credit-budgeted.
-  * OpenAI API key with access to the configured model (`AI_MODEL`, default `gpt-5.6`).
-  * Telegram bot token (from @BotFather) and your chat id.
+## Part A — Collect your keys (10 minutes)
 
-## 1. Create the databases
+You need three kinds of keys. Only the first is mandatory to boot; the others unlock features.
 
-1. In the Railway project: **+ New → Database → PostgreSQL**. Name it `Postgres`.
-2. **+ New → Database → Redis**. Name it `Redis`.
-3. Railway exposes connection variables on these services (`DATABASE_URL`, `REDIS_URL`, plus public
-   variants). Use the **private** URLs via reference variables (next steps) so traffic stays inside the
-   project network and is not billed as egress.
+### A1. Your own dashboard passwords (mandatory)
+SolHunter protects its API and dashboard with keys you invent. Generate two long random strings:
 
-## 2. Create the API service (`gemfinder-api`)
+```bash
+openssl rand -hex 32     # -> API_KEYS      (dashboard login)
+openssl rand -hex 32     # -> API_ADMIN_KEYS (changing settings from the dashboard)
+```
+No terminal? Use any password generator (40+ random characters). Keep them in a password manager.
 
-1. **+ New → GitHub Repo** → select this repository (install the Railway GitHub app if asked).
-2. Rename the service to `gemfinder-api`.
-3. **Settings → Build**: builder *Dockerfile*; Dockerfile path `Dockerfile.api`
-   *(verify: if the UI has no Dockerfile-path field, set the service variable `RAILWAY_DOCKERFILE_PATH=Dockerfile.api`)*.
-4. **Settings → Deploy**:
-   * Start command: leave empty (the image's `CMD` runs `scripts/start_api.sh`), or set `./scripts/start_api.sh`.
-   * Health check path: `/health` (deploy-time check). Health check timeout: 120s.
-   * Restart policy: *On failure* (or *Always*).
-   * Replicas: 1 (the API is stateless, more replicas are safe; migrations are advisory-locked).
-5. **Settings → Networking**: *Generate domain* → you get `https://gemfinder-api-….up.railway.app`.
-   Railway injects `PORT`; the app binds `0.0.0.0:$PORT`.
-6. **Variables** (see `docs/ENVIRONMENT_VARIABLES.md` for the full list):
+### A2. Helius API key (strongly recommended, free)
+Helius provides on-chain holder data, creator history and wallet funding links.
+1. Go to https://dashboard.helius.dev and sign up (email or GitHub).
+2. Create a project → **API Keys** → copy the key (a UUID like `1a2b3c4d-...`).
+3. Free plan is enough to start (1M credits/month). SolHunter budgets credits automatically
+   (`HELIUS_DAILY_CREDIT_BUDGET`, default 30 000/day).
+Without it SolHunter still runs using stream-derived estimates, with lower confidence.
 
-   | Variable | Value |
-   |---|---|
-   | `APP_ENV` | `production` |
-   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
-   | `REDIS_URL` | `${{Redis.REDIS_URL}}` |
-   | `RUN_MIGRATIONS_ON_START` | `true` (**only** on the API) |
-   | `API_KEYS` | a long random string (used by the Chrome extension) |
-   | `API_ADMIN_KEYS` | another long random string (settings changes) |
-   | `CHROME_EXTENSION_ID` | the id shown in `chrome://extensions` after loading the extension |
-   | `PUBLIC_API_BASE_URL` | the generated domain, e.g. `https://gemfinder-api-production.up.railway.app` |
-   | `LOG_FORMAT` | `json` |
-   | `AI_ENABLED` / `TELEGRAM_ENABLED` | `false` on the API (the scanner owns these integrations) |
+### A3. OpenAI API key (optional — GPT research analyst)
+1. https://platform.openai.com → sign in → **API keys** → **Create new secret key** → copy (`sk-...`).
+2. Add a payment method and a **monthly budget** under Billing → Limits (SolHunter also enforces its own
+   limits: `AI_DAILY_SPEND_LIMIT_USD`, `AI_MONTHLY_SPEND_LIMIT_USD`).
+3. Confirm your account can use the model you set in `AI_MODEL` (default `gpt-5.6`; check the Models page).
+   If the model is unavailable SolHunter disables GPT analysis and tells you in the dashboard — it never
+   silently swaps models.
+4. Look up the model's price per 1M input/output tokens and set `AI_INPUT_COST_PER_1M_USD` and
+   `AI_OUTPUT_COST_PER_1M_USD` so spend limits and the cost page are accurate.
 
-   Generate keys with `openssl rand -hex 32`.
+### A4. Telegram bot (optional — alerts on your phone)
+1. In Telegram open **@BotFather** → `/newbot` → follow the prompts → copy the **bot token**
+   (`123456789:AAH...`).
+2. Open your new bot in Telegram and press **Start**, send any message.
+3. Find your **chat id**: open in a browser
+   `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates` and read `"chat":{"id": 123456789, ...}`.
+   (For a group/channel add the bot there; group ids are negative numbers.)
 
-7. Deploy. Watch the logs for `migrations.completed` and `api.starting`. Open `https://<domain>/ready` –
-   it must return `{"status":"ready","database":true,"redis":true,...}`.
+---
 
-## 3. Create the scanner service (`gemfinder-scanner`)
+## Part B — Put the code on GitHub (2 minutes)
 
-1. **+ New → GitHub Repo** → the same repository again. Rename to `gemfinder-scanner`.
-2. **Settings → Build**: Dockerfile path `Dockerfile.worker` (or `RAILWAY_DOCKERFILE_PATH=Dockerfile.worker`).
-3. **Settings → Deploy**: start command empty (image runs `scripts/start_scanner.sh`), restart policy *Always*,
-   replicas **1**. Do **not** add a cron schedule – the worker runs continuously and holds a Redis
-   leader lock so an overlapping redeploy never scans twice.
-   Health check: optional. The worker serves `GET /health` on `SCANNER_HTTP_HEALTH_PORT` (8081). If you
-   want Railway to check it, set `PORT=8081` on this service and health check path `/health` *(verify)*.
-   No public domain is needed.
-4. **Variables**:
+The repository is already on GitHub (`fr-ost/solhunter`). Merge/push the branch you want to deploy
+to `main` (Railway deploys a branch of your choice). Nothing else is needed: the `Dockerfile` at the
+repo root builds the dashboard and the backend.
 
-   | Variable | Value |
-   |---|---|
-   | `APP_ENV` | `production` |
-   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
-   | `REDIS_URL` | `${{Redis.REDIS_URL}}` |
-   | `RUN_MIGRATIONS_ON_START` | `false` (the scanner waits for the API's migration) |
-   | `HELIUS_API_KEY` | your key (optional; without it holder data is limited) |
-   | `OPENAI_API_KEY`, `AI_ENABLED=true`, `AI_MODEL=gpt-5.6` | GPT analyst (optional) |
-   | `AI_INPUT_COST_PER_1M_USD`, `AI_OUTPUT_COST_PER_1M_USD` | current OpenAI prices for your model (used for spend limits) |
-   | `AI_DAILY_SPEND_LIMIT_USD`, `AI_MONTHLY_SPEND_LIMIT_USD` | e.g. `1.5` / `25` |
-   | `TELEGRAM_ENABLED=true`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | alerts (optional) |
-   | `DASHBOARD_BASE_URL` / `PUBLIC_API_BASE_URL` | used for links inside Telegram alerts |
-   | `LOG_FORMAT` | `json` |
-   | `API_KEYS` / `API_ADMIN_KEYS` | not needed on the scanner |
+---
 
-5. Deploy. Expected log sequence: `migrations.schema_ready` → `heartbeat.leader_acquired` →
-   `pumpportal.connected` → `scanner.started`. The API's `/api/v1/status/system` now shows the scanner
-   heartbeat as `running`.
+## Part C — Create the Railway project (15 minutes)
 
-## 4. Wire the Chrome extension
+### C1. Databases
+1. https://railway.app → **New Project** → **Empty project**. Name it `solhunter`.
+2. **+ Create** → **Database** → **PostgreSQL**.
+3. **+ Create** → **Database** → **Redis**.
+Wait until both show as deployed.
 
-Build and load the extension (`docs/EXTENSION.md`). In its Settings page enter the API domain and the
-`API_KEYS` value. Copy the extension id into the API service variable `CHROME_EXTENSION_ID` and redeploy
-the API so CORS allows the `chrome-extension://<id>` origin.
+### C2. The SolHunter service
+1. **+ Create** → **GitHub Repo** → authorise Railway for GitHub if asked → pick `fr-ost/solhunter`.
+2. Click the new service → **Settings**:
+   * **Service name**: `solhunter`.
+   * **Source → Branch**: `main` (or your branch).
+   * **Build**: Railway detects the root `Dockerfile` automatically *(check: Builder shows "Dockerfile")*.
+   * **Deploy → Healthcheck path**: `/health`, timeout 300 s (the first boot runs migrations).
+   * **Deploy → Restart policy**: *Always*.
+   * **Deploy → Replicas**: 1 (keep it at 1 — the scanner must run exactly once).
+   * **Networking → Public Networking → Generate Domain** → you get
+     `https://solhunter-production-xxxx.up.railway.app`. (Port: 8080 if asked.)
+3. **Variables** → **Raw Editor** → paste, then edit the values:
 
-## 5. Migrations strategy
+```
+APP_ENV=production
+SERVICE_ROLE=all
+LOG_FORMAT=json
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+REDIS_URL=${{Redis.REDIS_URL}}
+API_KEYS=<paste your first random string>
+API_ADMIN_KEYS=<paste your second random string>
+PUBLIC_API_BASE_URL=https://<your generated domain>
+HELIUS_API_KEY=<helius key or leave empty>
+OPENAI_API_KEY=<sk-... or leave empty>
+AI_ENABLED=true
+AI_MODEL=gpt-5.6
+AI_INPUT_COST_PER_1M_USD=<price of AI_MODEL>
+AI_OUTPUT_COST_PER_1M_USD=<price of AI_MODEL>
+AI_DAILY_SPEND_LIMIT_USD=1.5
+AI_MONTHLY_SPEND_LIMIT_USD=25
+TELEGRAM_ENABLED=true
+TELEGRAM_BOT_TOKEN=<bot token or leave empty and set TELEGRAM_ENABLED=false>
+TELEGRAM_CHAT_ID=<chat id>
+```
+   `${{Postgres.DATABASE_URL}}` and `${{Redis.REDIS_URL}}` are Railway *reference variables*: they point
+   at the private network addresses and stay correct if Railway rotates passwords. If your database
+   services have different names, use those names inside `${{...}}`.
+   Everything else has sensible defaults (see `docs/ENVIRONMENT_VARIABLES.md`); you can change the
+   operational ones later from the dashboard **Settings** page without redeploying.
 
-* Only the API runs `alembic upgrade head` at start, inside a PostgreSQL advisory lock
-  (`backend/database/migrate.py`). Multiple API replicas or overlapping deploys cannot race.
-* The scanner polls the `alembic_version` table until it matches the code's head revision
-  (`MIGRATION_WAIT_TIMEOUT_SECONDS`), then starts. It never runs migrations itself.
-* Manual migrations: `railway run --service gemfinder-api ./scripts/migrate.sh` *(verify CLI syntax)*.
-* New migrations: `alembic revision --autogenerate -m "..."` locally, commit, deploy the API first.
+4. **Deploy** (Railway deploys automatically after saving variables). The first build takes 3–6 minutes
+   (it compiles the dashboard and installs Python packages).
 
-## 6. Backups
+### C3. Verify
+Open the **Deploy logs** and look for, in order:
+`migrations.completed` → `api.starting` → `api.embedded_scanner_started` → `heartbeat.leader_acquired`
+→ `pumpportal.connected` → `scanner.started`. If `OPENAI_API_KEY` is set you also see
+`analyst.model_verified` (or `analyst.model_unavailable` — then fix `AI_MODEL`).
 
-Railway Postgres supports backups from the database service page *(verify your plan)*. Additionally you
-can dump with `pg_dump "$DATABASE_PUBLIC_URL" > backup.sql` from your machine. The tables
-`token_snapshots`, `training_samples`, `candidate_scores`, `model_versions` are the ML history – never
-truncate them in production.
+Then open `https://<your domain>/` in a browser, enter your `API_KEYS` value (and optionally the admin
+key) on the login screen. The dashboard shows the scanner as **running**, providers as **connected**, and
+tokens being discovered within a minute.
 
-## 7. Operations checklist after the first deploy
+---
 
-- [ ] `GET /ready` returns 200 on the API.
-- [ ] `/api/v1/status/system` (with `X-API-Key`) shows `scanner.status = running`, providers
-      `pumpportal: connected`.
-- [ ] `/api/v1/status/providers` shows `helius` connected (or `solana_rpc` fallback if no key).
-- [ ] `/api/v1/status/ai` shows `enabled: true` and the model verified (scanner logs `analyst.model_verified`);
-      if the model is unavailable the scanner logs `analyst.model_unavailable` and analysis stays off – fix
-      `AI_MODEL` rather than expecting a fallback.
-- [ ] Send yourself a test Telegram message: the first candidate alert, or check `/api/v1/history/alerts`.
-- [ ] `/api/v1/status/costs` projection is within budget; adjust `AI_*` limits and `HELIUS_*` budgets.
-- [ ] Redeploy the scanner once and confirm `heartbeat.leader_acquired` appears only after the old
-      instance logged `scanner.stopped` (no duplicate scanning).
+## Part D — Day-to-day use
 
-## 8. Scaling and cost notes
+* **Dashboard**: candidates, watchlist, whale activity, cost projection, scanner health.
+* **Settings** (admin key): tune filter thresholds, ranking weights, alert thresholds live.
+* **Telegram**: candidate alerts and urgent warnings; a quiet day with zero alerts is normal.
+* **Paper trading / journal**: record manual trades; performance by signal type and model version.
+* **Logs & Status**: provider status, GPT spend, model versions, recent logs — all in the dashboard.
 
-* Hobby-sized Railway instances are enough initially: API (~150 MB RAM), scanner (~300–500 MB RAM
-  depending on `SCANNER_MAX_TRACKED_TOKENS`), Postgres, Redis.
-* Postgres growth is dominated by `token_transactions` and `token_snapshots`. Retention defaults prune
-  transactions after 30 days, raw events after 3 days and unlabelled/unscored snapshots after 45 days;
-  training samples, labelled snapshots and candidate scores are kept.
-* Helius free tier (1M credits/month) is budgeted via `HELIUS_DAILY_CREDIT_BUDGET` /
-  `HELIUS_MONTHLY_CREDIT_BUDGET`; when exhausted the scanner continues with stream-derived estimates and
-  marks data as unavailable.
+Railway redeploys automatically on every push to the chosen branch. Deploys are safe: migrations run
+under a lock, the scanner hands over through a Redis leader lock, and pending writes are flushed on
+shutdown.
+
+---
+
+## Part E — Optional: split into two services (only if needed)
+
+If you ever want to scale the API separately, create a second service from the same repo with
+`SERVICE_ROLE=scanner` and `RUN_MIGRATIONS_ON_START=false`, and set `SERVICE_ROLE=api` on the first.
+The same image serves both roles; nothing else changes. Keep exactly one scanner.
+
+---
+
+## Part F — Costs (rough)
+
+| Item | Typical monthly |
+|---|---|
+| Railway (1 service ~0.5–1 GB RAM, Postgres, Redis) | $10–25 depending on plan/usage |
+| Helius free tier | $0 |
+| OpenAI (capped by `AI_MONTHLY_SPEND_LIMIT_USD`) | ≤ $25 by default |
+| Telegram | $0 |
+
+The dashboard **Status → Costs** page shows month-to-date and projected spend.
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Build fails at `npm run build` | Check the deploy logs; the web build needs `web/package-lock.json` (committed). Retry the deploy. |
+| `/health` OK but dashboard says scanner offline | Logs: `scanner.standby` means another instance holds the lock (replicas > 1 or a previous deploy still stopping) — wait 60 s or set replicas to 1. |
+| `migrations.schema_not_ready` | Only in split mode when the scanner starts before the API; it retries for 3 minutes. |
+| Login says invalid key | Use the exact `API_KEYS` value (no spaces). |
+| No tokens discovered | Check `pumpportal` in Status → Providers; the client reconnects automatically. |
+| GPT disabled | Status → AI shows the reason (model unavailable, spend limit, missing key). |

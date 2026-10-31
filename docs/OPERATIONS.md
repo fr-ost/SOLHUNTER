@@ -11,7 +11,7 @@
 | Cost projection | `GET /api/v1/status/costs` |
 | Model versions and metrics | `GET /api/v1/status/models` |
 | Logs | Railway log explorer (JSON) or `GET /api/v1/logs?source=scanner` |
-| Worker HTTP health | `GET http://gemfinder-scanner.railway.internal:8081/health` (private network) |
+| Worker HTTP health (split mode only) | `GET http://solhunter-scanner.railway.internal:8081/health` (private network) |
 
 `incomplete_data_warning` in `/status/system` states when providers are degraded; candidates scored in
 that condition carry lower confidence.
@@ -28,13 +28,13 @@ that condition carry lower confidence.
 * **GPT disabled** – `/status/ai` → `disabled_reason`. Model unavailable? Set `AI_MODEL` to a model your
   key can access; the system never substitutes silently. Spend limit reached? Analyses are skipped with
   the reason recorded in `gpt_analyses.error`.
-* **Dead letters** – persistence batches: Redis list `gemfinder:persistence:dead`; GPT jobs:
-  `gemfinder:gpt:dead`. Inspect with `redis-cli LRANGE <key> 0 -1`.
+* **Dead letters** – persistence batches: Redis list `solhunter:persistence:dead`; GPT jobs:
+  `solhunter:gpt:dead`. Inspect with `redis-cli LRANGE <key> 0 -1`.
 * **No candidates for a long time** – this is expected on quiet days. Verify `live_counters.discovered`
   grows and inspect `candidate_scores` with `status=rejected` to see the dominant rejection reasons; tune
   `FILTER_*`/`RANK_*` via `PUT /api/v1/settings` (changes apply within ~60 s).
 * **Retraining** – automatic daily when `training_samples ≥ ML_MIN_TRAINING_SAMPLES`; manual:
-  `railway run --service gemfinder-scanner python -m backend.ml.train`.
+  `railway run --service solhunter-scanner python -m backend.ml.train`.
 * **Retention** – hourly job prunes raw events (3 d), transactions (30 d), wallet transactions (30 d),
   alerts (180 d), unlabelled & unscored snapshots (45 d). Training samples, labelled snapshots and
   candidate scores are kept.

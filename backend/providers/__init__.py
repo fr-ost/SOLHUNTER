@@ -1,1 +1,1 @@
-"""GemFinder AI - providers package."""
+"""SolHunter - providers package."""

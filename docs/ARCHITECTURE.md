@@ -1,15 +1,16 @@
 # Architecture
 
-GemFinder AI is a modular, event-driven research platform. Two long-running services share one
-PostgreSQL database and one Redis instance:
+SolHunter is a modular, event-driven research platform. By default it runs as ONE process (API + web
+dashboard + scanner, `SERVICE_ROLE=all`) with PostgreSQL and Redis; the roles can be split into two
+services without code changes:
 
 ```
  PumpPortal WS ──┐                                   ┌──> Telegram alerts
- DexScreener  ───┼─> gemfinder-scanner (worker) ─────┤
- Helius RPC   ───┘      │  tracker / snapshots       └──> Redis pub/sub ──> gemfinder-api ──> Chrome extension
-                        │  filters / whale engine / ML / GPT                    (REST + WebSocket)
+ DexScreener  ───┼─> scanner (same process by default) ─────┤
+ Helius RPC   ───┘      │  tracker / snapshots       └──> Redis pub/sub ──> API ──> browser dashboard (web/)
+                        │  filters / whale engine / ML / GPT                    (REST + WebSocket + web dashboard)
                         ▼
-                   PostgreSQL  <──────────────────────────────── gemfinder-api (reads, paper trades, settings)
+                   PostgreSQL  <──────────────────────────────── solhunter-api (reads, paper trades, settings)
 ```
 
 ## Backend packages (`backend/`)
@@ -31,7 +32,7 @@ PostgreSQL database and one Redis instance:
 | `ai` | GPT analyst: strict schema, context builder, spend controls, queue with dead-letter. |
 | `notifications` | Telegram client and alert service (cooldowns, dedupe, urgent warnings). |
 | `risk` / `services` | Paper trading & position sizing, runtime settings overrides, status aggregation, retention, Redis helpers. |
-| `api` | FastAPI app: auth, CORS, rate limiting, routers, WebSocket live hub. |
+| `api` | FastAPI app: auth, CORS, rate limiting, routers, WebSocket live hub, serves the built dashboard (`web/dist`) and embeds the scanner in `all` mode. |
 
 ## Token lifecycle inside the scanner
 

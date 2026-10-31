@@ -40,7 +40,7 @@ async def _run(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="GemFinder AI model training")
+    parser = argparse.ArgumentParser(description="SolHunter model training")
     parser.add_argument("--activate", action="store_true", help="activate the new versions regardless of metrics")
     parser.add_argument("--no-activate", action="store_true", help="store versions but never activate")
     parser.add_argument("--label-only", action="store_true", help="only run the outcome labeller")

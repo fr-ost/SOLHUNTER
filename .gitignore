@@ -24,9 +24,9 @@ backend/ml/artifacts/
 *.joblib
 
 # Node / extension
-extension/node_modules/
-extension/dist/
-extension/.vite/
+web/node_modules/
+web/dist/
+web/.vite/
 npm-debug.log*
 
 # OS / editor

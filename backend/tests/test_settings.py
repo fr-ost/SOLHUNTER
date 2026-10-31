@@ -12,9 +12,9 @@ def test_database_url_is_converted_to_asyncpg(monkeypatch) -> None:
     assert s2.sqlalchemy_database_url.startswith("postgresql+asyncpg://")
 
 
-def test_allowed_origins_include_extension_id() -> None:
-    s = Settings(cors_allowed_origins="https://a.example, https://b.example", chrome_extension_id="abc123", _env_file=None)
-    assert s.allowed_origins == sorted(["https://a.example", "https://b.example", "chrome-extension://abc123"])
+def test_allowed_origins_parsed() -> None:
+    s = Settings(cors_allowed_origins="https://a.example, https://b.example", _env_file=None)
+    assert s.allowed_origins == ["https://a.example", "https://b.example"]
 
 
 def test_production_validation_flags_problems() -> None:
@@ -31,7 +31,6 @@ def test_production_validation_passes_with_proper_config() -> None:
         database_url="postgresql://u:p@postgres.railway.internal:5432/railway",
         redis_url="redis://default:pw@redis.railway.internal:6379",
         api_keys="k1",
-        chrome_extension_id="ext",
         openai_api_key="sk",
         _env_file=None,
     )

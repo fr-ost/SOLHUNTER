@@ -1,1 +1,1 @@
-"""GemFinder AI - risk package."""
+"""SolHunter - risk package."""

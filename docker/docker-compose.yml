@@ -4,13 +4,13 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: gemfinder
-      POSTGRES_PASSWORD: gemfinder
-      POSTGRES_DB: gemfinder
+      POSTGRES_USER: solhunter
+      POSTGRES_PASSWORD: solhunter
+      POSTGRES_DB: solhunter
     ports: ["5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gemfinder"]
+      test: ["CMD-SHELL", "pg_isready -U solhunter"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -26,7 +26,7 @@ services:
       dockerfile: Dockerfile.api
     env_file: ../.env
     environment:
-      DATABASE_URL: postgresql://gemfinder:gemfinder@postgres:5432/gemfinder
+      DATABASE_URL: postgresql://solhunter:solhunter@postgres:5432/solhunter
       REDIS_URL: redis://redis:6379/0
       RUN_MIGRATIONS_ON_START: "true"
       PORT: "8080"
@@ -41,7 +41,7 @@ services:
       dockerfile: Dockerfile.worker
     env_file: ../.env
     environment:
-      DATABASE_URL: postgresql://gemfinder:gemfinder@postgres:5432/gemfinder
+      DATABASE_URL: postgresql://solhunter:solhunter@postgres:5432/solhunter
       REDIS_URL: redis://redis:6379/0
       RUN_MIGRATIONS_ON_START: "false"
     depends_on:

@@ -1,15 +1,17 @@
-"""FastAPI application factory for the GemFinder AI API service."""
+"""FastAPI application factory for the SolHunter API service."""
 
 from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend import __version__
@@ -22,6 +24,8 @@ from backend.database.migrate import run_migrations_with_lock, wait_for_schema
 from backend.services.redis_client import close_redis
 
 log = get_logger(__name__)
+
+WEB_DIST = Path(__file__).resolve().parents[2] / "web" / "dist"
 
 
 async def _prepare_database() -> None:
@@ -52,9 +56,26 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     from backend.api.live import live_hub
 
     hub_task = asyncio.create_task(live_hub.run(), name="live-hub")
+    worker = None
+    worker_task = None
+    if settings.service_role == "all":
+        # Combined mode: the scanner runs inside this process (single Railway service).
+        from backend.scanner.main import ScannerWorker
+
+        worker = ScannerWorker(embedded=True)
+        app.state.scanner = worker
+        worker_task = asyncio.create_task(worker.run_embedded(), name="scanner")
+        log.info("api.embedded_scanner_started")
     try:
         yield
     finally:
+        if worker is not None:
+            worker.request_stop()
+            if worker_task is not None:
+                try:
+                    await asyncio.wait_for(worker_task, timeout=25)
+                except (TimeoutError, asyncio.CancelledError, Exception):  # noqa: BLE001
+                    worker_task.cancel()
         hub_task.cancel()
         try:
             await hub_task
@@ -69,7 +90,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     docs_enabled = not settings.is_production
     app = FastAPI(
-        title="GemFinder AI API",
+        title="SolHunter API",
         version=__version__,
         lifespan=lifespan,
         docs_url="/docs" if docs_enabled else None,
@@ -105,9 +126,27 @@ def create_app() -> FastAPI:
 
     register_routers(app)
 
-    @app.get("/", include_in_schema=False)
-    async def root() -> dict[str, str]:
-        return {"service": "gemfinder-api", "version": __version__, "docs": "/docs" if docs_enabled else "disabled"}
+    if (WEB_DIST / "index.html").exists():
+        app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="assets")
+
+        @app.get("/", include_in_schema=False)
+        async def dashboard_index() -> FileResponse:
+            return FileResponse(WEB_DIST / "index.html")
+
+        @app.get("/{path:path}", include_in_schema=False)
+        async def dashboard_spa(path: str) -> FileResponse:
+            # Hash-routed single-page app: any non-API path serves the dashboard shell or a static file.
+            if path.startswith(("api/", "ws", "health", "ready")):
+                raise StarletteHTTPException(404, "Not found")
+            candidate = WEB_DIST / path
+            if candidate.is_file():
+                return FileResponse(candidate)
+            return FileResponse(WEB_DIST / "index.html")
+    else:
+
+        @app.get("/", include_in_schema=False)
+        async def root() -> dict[str, str]:
+            return {"service": "solhunter", "version": __version__, "dashboard": "not built (run `npm run build` in web/)", "docs": "/docs" if docs_enabled else "disabled"}
 
     return app
 

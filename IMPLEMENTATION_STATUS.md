@@ -12,7 +12,7 @@ _Last updated: 2026-10-30 — backend test run: **105 passed** (`pytest -q`, Pos
 | 4 Filtering & ranking | 10 configurable stages with explainable reasons, execution analyzer, weighted ranking with penalties/confidence, evaluator orchestration, risk events, rug detection | ✅ |
 | 5 ML | Point-in-time features, outcome labelling, XGBoost (rug / breakout / expected return) with grouped walk-forward validation, calibration, metrics, versioned registry, scheduler, CLI, experimental policy | ✅ |
 | 6 GPT analyst | Responses API + strict schema, model verification without substitution, spend limits, cache, retries, queue + dead letter, verdict integration | ✅ (live call untested) |
-| 7 Chrome extension | MV3 side panel (React 18 + TypeScript + Vite + recharts): dashboard, candidates, candidate detail with charts, wallets, token search/track, history with outcomes, paper trading, journal, settings with runtime overrides, status, logs; live WebSocket updates; verified/estimate/model badges | ✅ builds & type-checks (`npm run build`); Chrome runtime behaviour not exercised in this environment |
+| 7 Web dashboard | Built-in browser dashboard (React 18 + TypeScript + Vite + recharts) served by the API at `/`: login with API key, dashboard, candidates, candidate detail with charts, wallets, token search/track, history with outcomes, paper trading, journal, settings with runtime overrides, status, logs; live WebSocket updates; verified/estimate/model badges | ✅ builds & type-checks; browser rendering not exercised in this environment |
 | 8 Production readiness | Telegram alerts, status/monitoring, security review, production start-up test, docs, checklist | ✅ (live integrations untested) |
 
 ## Remaining work / known gaps
@@ -20,8 +20,8 @@ _Last updated: 2026-10-30 — backend test run: **105 passed** (`pytest -q`, Pos
 * **Live validation with real credentials** – PumpPortal stream, Helius, OpenAI (`gpt-5.6`), Telegram and
   Railway itself were not reachable from the build environment. The code paths are tested with local
   servers and mocks; the first deployment must confirm them (see `docs/DEPLOYMENT_CHECKLIST.md`).
-* **Chrome runtime** – the extension was built and type-checked but not opened in Chrome here: verify side-panel
-  opening, `chrome.storage`/`chrome.permissions` prompts and CORS against the live API (`docs/EXTENSION.md`).
+* **Dashboard in a browser** – built and type-checked but not opened in a browser here: verify login, charts
+  and live updates after the first deploy.
 * **Docker image build** – the Docker daemon was unavailable in the build sandbox; Dockerfiles were
   reviewed and the start scripts were executed directly (production start-up test). Build once locally
   or let Railway build.
@@ -45,7 +45,7 @@ _Last updated: 2026-10-30 — backend test run: **105 passed** (`pytest -q`, Pos
 | `HELIUS_API_KEY` | holder distribution, creator history, funders | stream-based estimates only, lower confidence |
 | `OPENAI_API_KEY` | GPT analysis | ranking without the GPT component, alerts sent immediately |
 | `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | alerts | alerts recorded as suppressed in the DB |
-| `API_KEYS` / `API_ADMIN_KEYS` | API access from the extension | API refuses requests in production |
+| `API_KEYS` / `API_ADMIN_KEYS` | dashboard login / settings changes | API refuses requests in production |
 
 ## Test coverage (backend)
 
@@ -61,6 +61,6 @@ labeller/training/registry · GPT analyst/queue/spend · Telegram/alerts · prod
 2. Watch the scanner logs for the first `token.discovered` events and inspect `raw_events` to confirm
    the PumpPortal field mapping; adjust `backend/ingestion/normalizer.py` if a field differs.
 3. Confirm `analyst.model_verified` (or set `AI_MODEL`), send a Telegram test alert, set pricing variables.
-4. Load the extension, set `CHROME_EXTENSION_ID`, verify the dashboard shows the live scanner.
+4. Open the Railway URL, log in with `API_KEYS`, verify the dashboard shows the live scanner.
 5. After 24–72 h: check `/api/v1/status/models` for the first trained versions and
    `/api/v1/history/outcomes/summary` for realised candidate outcomes; tune `FILTER_*`/`RANK_*`.

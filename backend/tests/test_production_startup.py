@@ -36,14 +36,17 @@ def test_api_boots_like_railway_and_stops_on_sigterm() -> None:
         "REDIS_URL": TEST_REDIS_URL.replace("localhost", "127.0.0.1"),
         "API_KEYS": "prod-key",
         "API_ADMIN_KEYS": "",
-        "CHROME_EXTENSION_ID": "abcdefghijklmnopabcdefghijklmnop",
+        "SERVICE_ROLE": "all",  # combined mode: API + dashboard + embedded scanner in one process
+        "PUMPPORTAL_ENABLED": "false",
+        "SCANNER_HEARTBEAT_INTERVAL_SECONDS": "1",
+        "CORS_ALLOWED_ORIGINS": "https://dashboard.example",
         "RUN_MIGRATIONS_ON_START": "true",
         "LOG_FORMAT": "json",
         "LOG_LEVEL": "INFO",  # the test harness exports WARNING; production boots at INFO
         "AI_ENABLED": "false",
         "TELEGRAM_ENABLED": "false",
     }
-    proc = subprocess.Popen([str(ROOT / "scripts" / "start_api.sh")], cwd=ROOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    proc = subprocess.Popen([str(ROOT / "scripts" / "start.sh")], cwd=ROOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     base = f"http://127.0.0.1:{port}"
     try:
         deadline = time.time() + 60
@@ -63,8 +66,8 @@ def test_api_boots_like_railway_and_stops_on_sigterm() -> None:
         assert ready.status_code == 200, ready.text
         body = ready.json()
         assert body["database"] and body["redis"] and body["schema_revision"]
-        # production: docs disabled, auth enforced, CORS limited to the extension origin
-        assert httpx.get(f"{base}/docs", timeout=5).status_code == 404
+        # production: OpenAPI disabled (the dashboard shell or 404 is served instead), auth enforced
+        assert httpx.get(f"{base}/openapi.json", timeout=5).status_code in (404, 200) and b"openapi" not in httpx.get(f"{base}/openapi.json", timeout=5).content[:200].lower() or httpx.get(f"{base}/openapi.json", timeout=5).status_code == 404
         assert httpx.get(f"{base}/api/v1/dashboard", timeout=5).status_code == 401
         ok = httpx.get(f"{base}/api/v1/status/system", headers={"X-API-Key": "prod-key"}, timeout=10)
         assert ok.status_code == 200
@@ -72,10 +75,20 @@ def test_api_boots_like_railway_and_stops_on_sigterm() -> None:
         # the only acceptable warnings here come from the test database living on localhost
         assert all(("localhost" in w) for w in warnings), warnings
         assert ok.json()["database"]["ok"] and ok.json()["api"]["environment"] == "production"
-        pre = httpx.options(f"{base}/api/v1/dashboard", headers={"Origin": "chrome-extension://abcdefghijklmnopabcdefghijklmnop", "Access-Control-Request-Method": "GET"}, timeout=5)
-        assert pre.headers.get("access-control-allow-origin") == "chrome-extension://abcdefghijklmnopabcdefghijklmnop"
+        pre = httpx.options(f"{base}/api/v1/dashboard", headers={"Origin": "https://dashboard.example", "Access-Control-Request-Method": "GET"}, timeout=5)
+        assert pre.headers.get("access-control-allow-origin") == "https://dashboard.example"
         bad = httpx.options(f"{base}/api/v1/dashboard", headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"}, timeout=5)
         assert bad.headers.get("access-control-allow-origin") is None
+        # embedded scanner comes up inside the same process and heartbeats
+        scanner_status = None
+        for _ in range(60):
+            scanner_status = httpx.get(f"{base}/api/v1/status/system", headers={"X-API-Key": "prod-key"}, timeout=10).json()["scanner"]
+            if scanner_status.get("status") == "running":
+                break
+            time.sleep(0.5)
+        assert scanner_status and scanner_status["status"] == "running" and scanner_status["is_leader"], scanner_status
+        root = httpx.get(f"{base}/", timeout=5)
+        assert root.status_code == 200  # dashboard shell (if built) or service JSON
     finally:
         proc.send_signal(signal.SIGTERM)
         try:
@@ -88,18 +101,17 @@ def test_api_boots_like_railway_and_stops_on_sigterm() -> None:
     # uvicorn's supervisor re-raises SIGTERM after a graceful shutdown, so the status is 0 or -SIGTERM;
     # the lifespan must have completed (engine disposed, redis closed) before that.
     assert code in (0, -signal.SIGTERM), f"api exited with {code}\n{output[-2000:]}"
-    assert "api.stopped" in output, output[-2000:]
+    assert "api.stopped" in output and "scanner.stopped" in output, output[-2000:]
 
 
-def test_start_scripts_reference_real_modules() -> None:
-    api = (ROOT / "scripts" / "start_api.sh").read_text()
-    scanner = (ROOT / "scripts" / "start_scanner.sh").read_text()
-    assert "backend.api.main:app" in api and "--host 0.0.0.0" in api and '"${PORT}"' in api
-    assert "exec python -m backend.scanner.main" in scanner  # persistent process, no schedule flags
-    assert "--cron" not in scanner and "schedule" not in scanner.lower()
-    for name in ("Dockerfile.api", "Dockerfile.worker"):
-        text = (ROOT / name).read_text()
-        assert "USER appuser" in text and "localhost" not in text.replace("127.0.0.1", "")
+def test_start_script_and_dockerfile() -> None:
+    start = (ROOT / "scripts" / "start.sh").read_text()
+    assert "backend.api.main:app" in start and "--host 0.0.0.0" in start and '"${PORT}"' in start
+    assert "exec python -m backend.scanner.main" in start  # persistent process, no schedule flags
+    assert "--cron" not in start and "schedule" not in start.lower()
+    text = (ROOT / "Dockerfile").read_text()
+    assert "USER appuser" in text and "localhost" not in text.replace("127.0.0.1", "")
+    assert "npm run build" in text and "COPY --from=web /web/dist ./web/dist" in text
     env_example = (ROOT / ".env.example").read_text()
     assert "sk-" not in env_example and "OPENAI_API_KEY=" in env_example
     subprocess.run([sys.executable, "-c", "import backend.scanner.main, backend.api.main"], check=True, cwd=ROOT)

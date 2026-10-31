@@ -1,1 +1,1 @@
-"""GemFinder AI - database package."""
+"""SolHunter - database package."""

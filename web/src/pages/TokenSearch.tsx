@@ -18,7 +18,7 @@ export function TokenSearchPage(): JSX.Element {
   const track = async (mint: string): Promise<void> => {
     setTrackMsg(null);
     try {
-      await api.trackToken(mint, "requested from extension");
+      await api.trackToken(mint, "requested from dashboard");
       setTrackMsg(`Tracking request queued for ${shortAddr(mint)} - the scanner picks it up within a few seconds.`);
     } catch (err) {
       setTrackMsg(err instanceof ApiError ? err.userMessage : String(err));

@@ -1,1 +1,1 @@
-"""GemFinder AI - notifications package."""
+"""SolHunter - notifications package."""

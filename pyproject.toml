@@ -1,5 +1,5 @@
 [project]
-name = "gemfinder-ai"
+name = "solhunter-ai"
 version = "0.1.0"
 description = "AI-powered Solana token discovery and research platform (Pump.fun focused)"
 requires-python = ">=3.12"

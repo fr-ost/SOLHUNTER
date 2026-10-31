@@ -116,7 +116,7 @@ export function TradingPage(): JSX.Element {
         <div style={{ marginTop: 8 }}>
           <Tabs value={tab} onChange={setTab} options={[{ id: "open", label: "Open" }, { id: "closed", label: "Closed" }, { id: "new", label: "+ New" }, { id: "sizing", label: "Sizing" }, { id: "performance", label: "Performance" }]} />
         </div>
-        <p className="faint tiny">GemFinder never executes trades. Record what you did manually; nothing here touches a wallet.</p>
+        <p className="faint tiny">SolHunter never executes trades. Record what you did manually; nothing here touches a wallet.</p>
       </Card>
       {msg ? <Banner kind={msg.kind}>{msg.text}</Banner> : null}
       {tab === "open" && (

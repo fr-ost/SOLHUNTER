@@ -1,6 +1,6 @@
 """Alert service: candidate alerts and urgent risk warnings with cooldowns and deduplication.
 
-Runs inside the scanner (independent of the Chrome extension). Every alert is recorded in the
+Runs inside the scanner (independent of the web dashboard). Every alert is recorded in the
 ``alerts`` table (sent / failed / suppressed) so the dashboard can show history.
 """
 
@@ -63,7 +63,7 @@ def build_candidate_message(state: TokenState, score: CandidateScore, snapshot: 
     comps = score.components or {}
     exp = " (experimental)" if score.ml_is_experimental else ""
     lines = [
-        f"<b>🔎 GemFinder {status_label}: {sym}</b> {name}",
+        f"<b>🔎 SolHunter {status_label}: {sym}</b> {name}",
         f"<code>{state.mint}</code>",
         f"Score <b>{score.overall_score:.0f}/100</b> · confidence {score.confidence} · age {_age(snapshot.get('age_seconds'))} · venue {state.pool_kind}",
         f"Mcap {_fmt_usd(snapshot.get('market_cap_usd'))} · Liquidity {_fmt_usd(snapshot.get('liquidity_usd'))} · Vol 5m {snapshot.get('volume_sol_5m') or 0:.1f} SOL · buyers 5m {snapshot.get('unique_buyers_5m') or 0}",
@@ -212,7 +212,7 @@ class AlertService:
         return await self._deliver(state.mint, "risk_escalation" if risk_type not in URGENT_TYPES else risk_type, dedupe_key, title, message, urgent=True, payload=details)
 
     async def send_system_alert(self, title: str, message: str, dedupe_key: str) -> str:
-        return await self._deliver(None, "system", dedupe_key, title, f"<b>GemFinder system</b>\n{html.escape(message)}", urgent=True)
+        return await self._deliver(None, "system", dedupe_key, title, f"<b>SolHunter system</b>\n{html.escape(message)}", urgent=True)
 
     def stats(self) -> dict[str, Any]:
         return {"enabled": self.enabled, "sent": self.sent, "suppressed": self.suppressed, "failed": self.failed}

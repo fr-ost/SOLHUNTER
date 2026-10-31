@@ -1,7 +1,7 @@
 """Shared pytest fixtures.
 
 Integration tests need PostgreSQL and Redis. Configure with:
-  TEST_DATABASE_URL (default postgresql://postgres@localhost:5433/gemfinder_test)
+  TEST_DATABASE_URL (default postgresql://postgres@localhost:5433/solhunter_test)
   TEST_REDIS_URL    (default redis://localhost:6380/1)
 Tests that need them are skipped automatically when the services are unreachable.
 """
@@ -19,7 +19,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 
-TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "postgresql://postgres@localhost:5433/gemfinder_test")
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "postgresql://postgres@localhost:5433/solhunter_test")
 TEST_REDIS_URL = os.environ.get("TEST_REDIS_URL", "redis://localhost:6380/1")
 
 # Environment must be set before backend.config.settings is imported anywhere.
@@ -37,7 +37,8 @@ os.environ.update(
         "TELEGRAM_ENABLED": "false",
         "RATE_LIMIT_PER_MINUTE": "6000",
         "RATE_LIMIT_BURST": "1000",
-        "CORS_ALLOWED_ORIGINS": "chrome-extension://testextensionid",
+        "CORS_ALLOWED_ORIGINS": "https://dashboard.example",
+        "SERVICE_ROLE": "api",
     }
 )
 

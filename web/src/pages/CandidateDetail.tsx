@@ -412,7 +412,7 @@ export function CandidateDetailPage({ mint }: { mint: string }): JSX.Element {
                   {n}
                 </p>
               ))}
-              <p className="disclaimer">{d.execution.disclaimer ?? "Estimates from reserve data; not quotes. Nothing is executed by GemFinder."}</p>
+              <p className="disclaimer">{d.execution.disclaimer ?? "Estimates from reserve data; not quotes. Nothing is executed by SolHunter."}</p>
             </>
           ) : (
             <EmptyState>No execution estimate (reserves unknown).</EmptyState>

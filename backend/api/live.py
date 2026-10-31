@@ -13,7 +13,7 @@ from backend.services.redis_client import get_redis
 
 log = get_logger(__name__)
 
-EVENTS_CHANNEL = "gemfinder:events"
+EVENTS_CHANNEL = "solhunter:events"
 
 
 class LiveHub:

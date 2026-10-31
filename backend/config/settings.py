@@ -1,4 +1,4 @@
-"""Central configuration for GemFinder AI.
+"""Central configuration for SolHunter.
 
 Every tunable value lives here and is loaded from environment variables
 (or a local ``.env`` file in development). Secrets are never defaulted.
@@ -274,30 +274,29 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # --- application -------------------------------------------------------------
-    app_name: str = "GemFinder AI"
+    app_name: str = "SolHunter"
     app_env: AppEnv = "development"
-    service_role: Literal["api", "scanner", "cli"] = "api"
+    service_role: Literal["all", "api", "scanner", "cli"] = "all"
     log_level: str = "INFO"
     log_format: Literal["json", "console"] = "json"
     host: str = "0.0.0.0"
     port: int = Field(default=8080)
-    public_api_base_url: str | None = None  # e.g. https://gemfinder-api.up.railway.app
+    public_api_base_url: str | None = None  # e.g. https://solhunter-api.up.railway.app
     dashboard_base_url: str | None = None  # link target used in Telegram alerts
 
     # --- database / redis --------------------------------------------------------
-    database_url: str = "postgresql://postgres:postgres@localhost:5432/gemfinder"
+    database_url: str = "postgresql://postgres:postgres@localhost:5432/solhunter"
     db_pool_size: int = 5
     db_max_overflow: int = 5
     db_echo: bool = False
-    run_migrations_on_start: bool = False
+    run_migrations_on_start: bool = True  # safe: advisory-locked; set false on a split scanner service
     migration_wait_timeout_seconds: int = 180
     redis_url: str = "redis://localhost:6379/0"
 
     # --- api security --------------------------------------------------------------
     api_keys: str = ""  # comma separated read/write keys
     api_admin_keys: str = ""  # comma separated admin keys
-    cors_allowed_origins: str = ""  # comma separated explicit origins
-    chrome_extension_id: str | None = None
+    cors_allowed_origins: str = ""  # comma separated extra origins (the built-in dashboard is same-origin)
     rate_limit_per_minute: int = 120
     rate_limit_burst: int = 40
     ws_max_connections: int = 50
@@ -378,10 +377,7 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def allowed_origins(self) -> list[str]:
-        origins = _split_csv(self.cors_allowed_origins)
-        if self.chrome_extension_id:
-            origins.append(f"chrome-extension://{self.chrome_extension_id}")
-        return sorted(set(origins))
+        return sorted(set(_split_csv(self.cors_allowed_origins)))
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -402,8 +398,6 @@ class Settings(BaseSettings):
             problems.append("DATABASE_URL points at localhost in production")
         if "localhost" in self.redis_url or "127.0.0.1" in self.redis_url:
             problems.append("REDIS_URL points at localhost in production")
-        if not self.allowed_origins:
-            problems.append("CORS_ALLOWED_ORIGINS or CHROME_EXTENSION_ID should be set so the extension can connect")
         if self.ai.enabled and not self.openai_api_key:
             problems.append("AI_ENABLED is true but OPENAI_API_KEY is missing (GPT analysis will be disabled)")
         if self.telegram.enabled and not (self.telegram.bot_token and self.telegram.chat_id):

@@ -1,4 +1,4 @@
-// Types for the GemFinder API responses. The backend serialises ORM rows as plain JSON objects with
+// Types for the SolHunter API responses. The backend serialises ORM rows as plain JSON objects with
 // ISO-8601 timestamps; optional/unknown values are null (never faked as zero).
 
 export type Json = Record<string, unknown>;

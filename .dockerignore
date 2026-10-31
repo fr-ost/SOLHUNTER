@@ -12,9 +12,9 @@ htmlcov
 .env
 .env.*
 !.env.example
-extension/node_modules
-extension/dist
-extension/.vite
+web/node_modules
+web/dist
+web/.vite
 docs
 *.md
 !README.md

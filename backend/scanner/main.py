@@ -1,4 +1,4 @@
-"""GemFinder scanner worker: a persistent process (never a cron job).
+"""SolHunter scanner worker: a persistent process (never a cron job).
 
 Responsibilities: real-time discovery (PumpPortal), tracking, snapshots, evaluation
 (filters/whale engine/ML/GPT - attached as the evaluator), alerts, heartbeat,
@@ -37,7 +37,8 @@ log = get_logger(__name__)
 
 
 class ScannerWorker:
-    def __init__(self) -> None:
+    def __init__(self, embedded: bool = False) -> None:
+        self.embedded = embedded  # running inside the API process (combined single-service mode)
         self.settings = get_settings()
         self.persistence = PersistenceWriter()
         self.dex = DexScreenerClient()
@@ -79,20 +80,23 @@ class ScannerWorker:
     # ------------------------------------------------------------------ lifecycle
     async def start(self) -> None:
         s = self.settings
-        configure_logging(s.log_level, s.log_format, service="scanner")
-        for problem in s.validate_for_production():
-            log.warning("startup.config_warning", problem=problem)
-        log.info("scanner.starting", version=__version__, env=s.app_env)
+        if not self.embedded:
+            configure_logging(s.log_level, s.log_format, service="scanner")
+            for problem in s.validate_for_production():
+                log.warning("startup.config_warning", problem=problem)
+        log.info("scanner.starting", version=__version__, env=s.app_env, embedded=self.embedded)
 
         self.heartbeat.log_handler = RedisLogHandler(asyncio.get_running_loop())
         logging.getLogger().addHandler(self.heartbeat.log_handler)
 
-        if s.scanner.http_health_enabled:
+        if s.scanner.http_health_enabled and not self.embedded:
             self.health = HealthServer(s.scanner.http_health_port, self.health_status)
             await self.health.start()
 
         engine = get_engine()
-        if s.run_migrations_on_start:
+        if self.embedded:
+            pass  # the API process already migrated / waited for the schema
+        elif s.run_migrations_on_start:
             await run_migrations_with_lock(engine, s.sqlalchemy_database_url)
             configure_logging(s.log_level, s.log_format, service="scanner")
             logging.getLogger().addHandler(self.heartbeat.log_handler)
@@ -210,6 +214,16 @@ class ScannerWorker:
         finally:
             await self.shutdown()
 
+    async def run_embedded(self) -> None:
+        """Run inside another event loop (the API process): no signal handlers, stop via request_stop()."""
+        try:
+            await self.start()
+            await self._stop.wait()
+        except Exception:  # noqa: BLE001
+            log.exception("scanner.embedded_failed")
+        finally:
+            await self.shutdown()
+
     async def shutdown(self) -> None:
         log.info("scanner.shutting_down")
         self._stop.set()
@@ -242,8 +256,9 @@ class ScannerWorker:
             await self.health.stop()
         await self.dex.aclose()
         await self.helius.aclose()
-        await dispose_engine()
-        await close_redis()
+        if not self.embedded:
+            await dispose_engine()
+            await close_redis()
         log.info("scanner.stopped")
 
 
