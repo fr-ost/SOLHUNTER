@@ -178,3 +178,33 @@ async def test_pumpportal_client_subscribes_and_reconnects() -> None:
     diag = client.diagnostics()
     assert diag["messages"] >= 4 and diag["service_messages"] >= 2 and diag["samples"]
     assert "Successfully subscribed" in diag["last_service_message"]
+
+
+@pytest.mark.skipif(not conftest.SERVICES_AVAILABLE, reason="needs redis for credit budget")
+@respx.mock
+async def test_provider_probes_report_helius_and_telegram(monkeypatch) -> None:
+    from backend.config.settings import get_settings
+    from backend.notifications.alerts import AlertService
+    from backend.notifications.telegram import TelegramClient
+    from backend.scanner.main import ScannerWorker
+
+    s = get_settings()
+    monkeypatch.setattr(s, "helius_api_key", "good-key")
+    monkeypatch.setattr(s.telegram, "enabled", True)
+    respx.post("https://mainnet.helius-rpc.com/").mock(return_value=Response(200, json={"jsonrpc": "2.0", "id": 1, "result": 123456}))
+    respx.post("https://api.telegram.org/botTOK/getMe").mock(return_value=Response(200, json={"ok": True, "result": {"username": "solhunter_bot"}}))
+    worker = ScannerWorker()
+    from types import SimpleNamespace
+
+    worker.evaluator = SimpleNamespace(alerts=AlertService(TelegramClient(token="TOK", chat_id="1")))
+    try:
+        results = await worker.probe_providers()
+        assert results == {"helius": "connected", "telegram": "connected"}
+        assert worker.helius.rpc.tracker.counters.details["slot"] == 123456
+        # bad key -> down with a hint
+        respx.post("https://mainnet.helius-rpc.com/").mock(return_value=Response(401, text="invalid api key"))
+        results = await worker.probe_providers()
+        assert results["helius"] == "down" and "HELIUS_API_KEY" in worker.helius.rpc.tracker.counters.last_error
+    finally:
+        await worker.dex.aclose()
+        await worker.helius.aclose()

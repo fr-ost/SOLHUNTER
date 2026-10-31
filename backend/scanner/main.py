@@ -137,6 +137,7 @@ class ScannerWorker:
             self._tasks.append(asyncio.create_task(self.pumpportal.run(), name="pumpportal"))
         self._tasks.append(asyncio.create_task(self._snapshot_loop(), name="snapshots"))
         self._tasks.append(asyncio.create_task(self._maintenance_loop(), name="maintenance"))
+        self._tasks.append(asyncio.create_task(self._provider_probe_loop(), name="provider-probes"))
         if self.evaluator is not None:
             self._tasks.extend(self.evaluator.background_tasks())
         log.info("scanner.started", worker_id=self.heartbeat.worker_id)
@@ -197,6 +198,52 @@ class ScannerWorker:
                 self.loop_errors += 1
                 log.exception("scanner.maintenance_error")
             await self._sleep(10)
+
+    async def probe_providers(self) -> dict[str, str]:
+        """Verify keys/connectivity for providers that are otherwise only used on demand."""
+        results: dict[str, str] = {}
+        tracker = self.helius.rpc.tracker
+        try:
+            info = await self.helius.health_probe()
+            tracker.set_status("connected", **info)
+            results[tracker.name] = "connected"
+            log.info("provider.probe_ok", provider=tracker.name, mode=info["mode"], slot=info["slot"])
+        except Exception as exc:  # noqa: BLE001
+            msg = f"{type(exc).__name__}: {exc}"[:200]
+            if "401" in msg or "403" in msg or "invalid api key" in msg.lower() or "unauthorized" in msg.lower():
+                msg = f"{msg} - check HELIUS_API_KEY"
+            tracker.record_error(msg)
+            tracker.set_status("down")
+            results[tracker.name] = "down"
+            log.warning("provider.probe_failed", provider=tracker.name, error=msg)
+        await tracker.publish()
+        alerts = self.evaluator.alerts if self.evaluator is not None else None
+        if alerts is not None:
+            tg = alerts.telegram
+            if tg.enabled:
+                try:
+                    me = await tg.get_me()
+                    tg.tracker.set_status("connected", bot=(me.get("result") or {}).get("username"), chat_id=tg.chat_id)
+                    results["telegram"] = "connected"
+                except Exception as exc:  # noqa: BLE001
+                    tg.tracker.set_status("down")
+                    tg.tracker.record_error(f"{type(exc).__name__}: {exc} - check TELEGRAM_BOT_TOKEN"[:200])
+                    results["telegram"] = "down"
+            else:
+                tg.tracker.set_status("disabled", reason="TELEGRAM_ENABLED=false or token/chat id missing")
+                results["telegram"] = "disabled"
+            await tg.tracker.publish()
+        return results
+
+    async def _provider_probe_loop(self) -> None:
+        while not self._stop.is_set():
+            try:
+                await self.probe_providers()
+            except asyncio.CancelledError:
+                raise
+            except Exception:  # noqa: BLE001
+                log.exception("scanner.provider_probe_error")
+            await self._sleep(900)
 
     async def _sleep(self, seconds: float) -> None:
         try:

@@ -211,6 +211,12 @@ class HeliusClient:
         result = await self._rpc_call("getSignaturesForAddress", [address, opts])
         return list(result or [])
 
+    async def health_probe(self) -> dict[str, Any]:
+        """Cheap connectivity/key check (getSlot, ~1 credit). Raises on failure."""
+        slot = await self._rpc_call("getSlot", [{"commitment": "confirmed"}])
+        usage = await self.budget.usage() if self.api_key else {"day": 0.0, "month": 0.0}
+        return {"mode": self.mode, "slot": slot, "credits_today": usage["day"], "credits_month": usage["month"]}
+
     async def get_balance_sol(self, address: str) -> float | None:
         result = await self._rpc_call("getBalance", [address, {"commitment": "confirmed"}])
         lamports = (result or {}).get("value")
