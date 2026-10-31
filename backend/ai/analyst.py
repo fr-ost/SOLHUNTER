@@ -38,6 +38,23 @@ class AnalystUnavailable(Exception):
     pass
 
 
+def rank_model_suggestions(available: set[str], limit: int = 20) -> list[str]:
+    """Chat-capable models, newest family first, dated snapshots and special variants last."""
+    import re
+
+    def is_chat(m: str) -> bool:
+        return m.startswith(("gpt-5", "gpt-4.1", "o3", "o4")) and not any(x in m for x in ("audio", "realtime", "transcribe", "tts", "image", "search", "codex"))
+
+    def key(m: str) -> tuple:
+        ver = re.match(r"gpt-(\d+)(?:\.(\d+))?", m)
+        major = int(ver.group(1)) if ver else 0
+        minor = int(ver.group(2) or 0) if ver else 0
+        dated = bool(re.search(r"\d{4}-\d{2}-\d{2}", m))
+        return (-major, -minor, dated, len(m), m)
+
+    return sorted((m for m in available if is_chat(m)), key=key)[:limit]
+
+
 def _extract_usage(response: Any) -> tuple[int, int]:
     usage = getattr(response, "usage", None)
     if usage is None:
@@ -87,7 +104,7 @@ class GptAnalyst:
                     log.info("analyst.model_verified", model=self.ai.model, via="models.list")
                     return True
                 self.enabled = False
-                suggestions = sorted(m for m in available if m.startswith(("gpt-5", "gpt-4.1", "o3", "o4")))[:12]
+                suggestions = rank_model_suggestions(available)
                 hint = f" Models this key can use: {', '.join(suggestions)}." if suggestions else ""
                 self.disabled_reason = f"configured model '{self.ai.model}' is not available for this API key - analysis disabled (no substitution). Set AI_MODEL to one of your models.{hint}"
                 self.model_verified = False

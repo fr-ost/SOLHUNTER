@@ -364,3 +364,13 @@ async def test_model_unavailable_lists_alternatives_or_accepts_listed(monkeypatc
     assert "gpt-5.6-sol" in a.disabled_reason and "gpt-5-mini" in a.disabled_reason and "whisper" not in a.disabled_reason
     b = GptAnalyst(client=fake_client([], available=False, listed=[get_settings().ai.model]))
     assert await b.verify_model() is True and b.enabled and b.model_verified
+
+
+def test_model_suggestions_newest_first() -> None:
+    from backend.ai.analyst import rank_model_suggestions
+
+    avail = {"gpt-4.1", "gpt-4.1-2025-04-14", "gpt-5", "gpt-5-mini", "gpt-5-codex", "gpt-5.5", "gpt-5.6-terra", "gpt-5.6-luna", "whisper-1", "gpt-5-2025-08-07"}
+    out = rank_model_suggestions(avail)
+    assert out[:2] == ["gpt-5.6-luna", "gpt-5.6-terra"] and out[2] == "gpt-5.5"
+    assert "whisper-1" not in out and "gpt-5-codex" not in out
+    assert out.index("gpt-5") < out.index("gpt-5-2025-08-07") and out[-1] == "gpt-4.1-2025-04-14"
