@@ -33,7 +33,8 @@ def due_snapshot_kind(state: TokenState, now: datetime) -> str | None:
                 continue
             return kind
     if state.next_periodic_at is None:
-        state.next_periodic_at = now + timedelta(seconds=periodic_interval_seconds(state, now))
+        # first periodic evaluation soon (re-tracked survivors and manual tokens must not wait 5 minutes)
+        state.next_periodic_at = now + timedelta(seconds=min(60, periodic_interval_seconds(state, now)))
         return None
     if now >= state.next_periodic_at and age >= 60:
         # Idle, unsurfaced tokens are not re-snapshotted: nothing changed and the row would be waste.

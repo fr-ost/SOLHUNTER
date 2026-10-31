@@ -69,8 +69,12 @@ def build_candidate_message(state: TokenState, score: CandidateScore, snapshot: 
         f"Mcap {_fmt_usd(snapshot.get('market_cap_usd'))} · Liquidity {_fmt_usd(snapshot.get('liquidity_usd'))} · Vol 5m {snapshot.get('volume_sol_5m') or 0:.1f} SOL · buyers 5m {snapshot.get('unique_buyers_5m') or 0}",
         f"Holders {snapshot.get('holder_count') or 'n/a'} · top10 {_pct(snapshot.get('top10_pct'))} · dev {_pct(snapshot.get('dev_holding_pct'))}",
         f"Whales: {score.whale_signal or 'n/a'} · smart-money buyers {whale.get('smart_money_buyers', 0)} · whale net 5m {whale.get('whale_net_flow_5m', 0):+.2f} SOL",
-        f"Rug risk {_pct(score.rug_risk)}{exp} · P(+10/15/20) {_pct(score.breakout_p10)}/{_pct(score.breakout_p15)}/{_pct(score.breakout_p20)}{exp}",
+        f"Rug risk {_pct(score.rug_risk)}{exp} · P(+10/15/20) {_pct(score.breakout_p10)}/{_pct(score.breakout_p15)}/{_pct(score.breakout_p20)}{exp}"
+        + (f" · P(2x/24h) {_pct(score.p_2x_24h)}{exp}" if score.p_2x_24h is not None else ""),
     ]
+    growth = state.growth or {}
+    if growth.get("positives"):
+        lines.append(f"Growth ({state.phase}, score {float(growth.get('score') or 0) * 100:.0f}): " + " | ".join(html.escape(str(x)) for x in growth["positives"][:3]))
     if gpt is not None and gpt.analysis:
         a = gpt.analysis
         p = a.get("probability_estimates") or {}

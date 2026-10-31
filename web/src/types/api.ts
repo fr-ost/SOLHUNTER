@@ -49,6 +49,9 @@ export interface Snapshot {
 }
 
 export interface CandidateItem {
+  p_2x_24h?: number | null;
+  phase?: string | null;
+  growth_score?: number | null;
   id: number;
   mint: string;
   snapshot_id?: number | null;

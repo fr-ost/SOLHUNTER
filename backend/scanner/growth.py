@@ -78,7 +78,8 @@ class GrowthTracker:
         if not g.enabled or state.phase == PHASE_DEAD or state.flags.get("hard_rejected"):
             state.next_growth_check_at = None
             return
-        if state.total_trades < g.min_tracking_trades_to_follow and not state.flags.get("manual"):
+        followed = state.flags.get("manual") or state.flags.get("source") in {"growth", "migration", "wallet_tracker"}
+        if state.total_trades < g.min_tracking_trades_to_follow and not followed:
             state.next_growth_check_at = None
             return
         now = datetime.now(UTC)

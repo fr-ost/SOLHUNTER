@@ -184,31 +184,35 @@ def stage_liquidity(ctx: EvaluationContext) -> StageResult:
 # ----------------------------------------------------------------------------- stage 6
 def stage_buyer_quality(ctx: EvaluationContext) -> StageResult:
     cfg = _cfg()
-    w5 = ctx.state.window(300, ctx.now)
-    reasons: list[str] = []
     th = thresholds_for(ctx.state.age_at(ctx.now))
-    if w5.unique_buyers < th.min_unique_buyers_5m:
-        reasons.append(f"{w5.unique_buyers} unique buyers in 5m < {th.min_unique_buyers_5m} expected at {th.age_minutes:.0f}m")
+    # launches are judged on the last 5 minutes; older tokens on the last hour (slower, steadier flow)
+    window_s, label, mult = (300, "5m", 1) if th.phase == "launch" else (3600, "1h", 4)
+    w5 = ctx.state.window(window_s, ctx.now)
+    reasons: list[str] = []
+    needed = th.min_unique_buyers_5m * mult
+    if w5.unique_buyers < needed:
+        reasons.append(f"{w5.unique_buyers} unique buyers in {label} < {needed} expected at {th.age_minutes:.0f}m")
     if w5.top_wallet_share > cfg.max_buyer_concentration_pct:
         reasons.append(f"one wallet is {w5.top_wallet_share:.0%} of 5m volume")
     smart = ctx.whales.smart_money_buyers if ctx.whales else 0
     independent = ctx.whales.independent_profitable_buyers if ctx.whales else 0
     new_ratio = (w5.new_buyers / w5.unique_buyers) if w5.unique_buyers else 0.0
-    score = _clamp(0.4 * min(1.0, w5.unique_buyers / (max(1, th.min_unique_buyers_5m) * 3)) + 0.2 * new_ratio + 0.3 * min(1.0, smart / 3) + 0.1 * (1.0 - w5.top_wallet_share))
+    score = _clamp(0.4 * min(1.0, w5.unique_buyers / (max(1, needed) * 3)) + 0.2 * new_ratio + 0.3 * min(1.0, smart / 3) + 0.1 * (1.0 - w5.top_wallet_share))
     return StageResult("s6", "buyer_quality", passed=not reasons, safety=False, score=score, reasons=reasons, metrics={"unique_buyers_5m": w5.unique_buyers, "new_buyers_5m": w5.new_buyers, "smart_money_buyers": smart, "independent_profitable_buyers": independent, "top_wallet_share": w5.top_wallet_share, "repeat_buyer_trades": w5.repeat_buyer_trades})
 
 
 # ----------------------------------------------------------------------------- stage 7
 def stage_trading_pressure(ctx: EvaluationContext) -> StageResult:
     cfg = _cfg()
-    w5 = ctx.state.window(300, ctx.now)
-    w1 = ctx.state.window(60, ctx.now)
+    launch = thresholds_for(ctx.state.age_at(ctx.now)).phase == "launch"
+    w5 = ctx.state.window(300 if launch else 3600, ctx.now)
+    w1 = ctx.state.window(60 if launch else 900, ctx.now)
     reasons: list[str] = []
     ratio = w5.buy_sell_volume_ratio
     if ratio is not None and ratio < cfg.min_buy_sell_volume_ratio:
         reasons.append(f"buy/sell volume ratio {ratio:.2f} < {cfg.min_buy_sell_volume_ratio}")
     if w5.net_sol < cfg.min_net_sol_flow_5m:
-        reasons.append(f"net SOL flow {w5.net_sol:.2f} over 5m is negative")
+        reasons.append(f"net SOL flow {w5.net_sol:.2f} over {'5m' if launch else '1h'} is negative")
     liq = ctx.liquidity_sol
     large_sells = 0
     if liq:

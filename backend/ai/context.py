@@ -30,7 +30,8 @@ def build_analyst_context(ctx: EvaluationContext, result: PipelineResult, rankin
     context: dict[str, Any] = {
         "scanner_version": __version__,
         "as_of": ctx.now.isoformat(),
-        "token": {"mint": s.mint, "name": s.name, "symbol": s.symbol, "age_minutes": round((snap.get("age_seconds") or 0) / 60, 1), "venue": s.pool_kind, "migrated": bool(s.migrated_at), "creator": s.creator},
+        "token": {"mint": s.mint, "name": s.name, "symbol": s.symbol, "age_minutes": round((snap.get("age_seconds") or 0) / 60, 1), "phase": s.phase, "venue": s.pool_kind, "migrated": bool(s.migrated_at), "creator": s.creator, "discovery_source": s.discovery_source},
+        "growth_since_launch": s.growth or {"available": False, "note": "no growth history yet (token younger than 30 minutes)"},
         "market": {
             "price_usd": _r(snap.get("price_usd"), 10),
             "price_sol": _r(snap.get("price_sol"), 12),

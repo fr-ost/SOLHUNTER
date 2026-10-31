@@ -33,10 +33,13 @@ export function CandidateRow({ item }: { item: CandidateItem }): JSX.Element {
       <div className="meta">
         <span>
           <SourceBadge kind="model" /> rug {fmtPct(item.rug_risk)} · p10 {fmtPct(item.breakout_p10)} · p20 {fmtPct(item.breakout_p20)}
+          {item.p_2x_24h != null ? <> · 2x/24h {fmtPct(item.p_2x_24h)}</> : null}
           {item.ml_is_experimental ? <span className="faint"> (experimental)</span> : null}
         </span>
       </div>
       <div className="meta">
+        {item.phase ? <Badge tone={item.phase === "established" ? "good" : item.phase === "survival" ? "ok" : ""} title="lifecycle phase">{item.phase}</Badge> : null}
+        {item.growth_score != null ? <Badge tone={item.growth_score >= 0.6 ? "good" : ""} title="growth score (survivor re-checks)">growth {Math.round(item.growth_score * 100)}</Badge> : null}
         {item.whale_signal ? <Badge tone={whaleTone(item.whale_signal)}>{item.whale_signal.replace(/_/g, " ").toLowerCase()}</Badge> : null}
         {snap?.smart_money_buyers ? <Badge tone="good">{snap.smart_money_buyers} smart-money buyers</Badge> : null}
         {item.gpt_recommendation ? (
