@@ -1,57 +1,54 @@
 <div align="center">
 
-<img width="100%" alt="SolHunter — AI-assisted Solana token research, Pump.fun first" src="https://capsule-render.vercel.app/api?type=waving&amp;color=0:6C2BD9,50:FF2E93,100:FFB703&amp;height=220&amp;section=header&amp;text=SolHunter&amp;fontSize=68&amp;fontColor=ffffff&amp;fontAlignY=32&amp;animation=fadeIn&amp;desc=AI-assisted%20Solana%20token%20research%20%C2%B7%20Pump.fun%20first&amp;descAlignY=62&amp;descAlign=50&amp;descSize=18"/>
-
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://readme-typing-svg.demolab.com?font=Fira+Code&amp;weight=600&amp;size=22&amp;duration=3600&amp;pause=700&amp;color=FFB703&amp;center=true&amp;vCenter=true&amp;width=820&amp;height=48&amp;lines=AI-assisted+research+for+new+Solana+tokens;Pump.fun+launches%2C+tracked+in+real+time;Filters+rugs%2C+whales%2C+and+manipulation;ML+probabilities+plus+a+GPT+second+opinion;Dashboard+and+Telegram.+Never+a+trading+bot." />
-  <source media="(prefers-color-scheme: light)" srcset="https://readme-typing-svg.demolab.com?font=Fira+Code&amp;weight=600&amp;size=22&amp;duration=3600&amp;pause=700&amp;color=6C2BD9&amp;center=true&amp;vCenter=true&amp;width=820&amp;height=48&amp;lines=AI-assisted+research+for+new+Solana+tokens;Pump.fun+launches%2C+tracked+in+real+time;Filters+rugs%2C+whales%2C+and+manipulation;ML+probabilities+plus+a+GPT+second+opinion;Dashboard+and+Telegram.+Never+a+trading+bot." />
-  <img width="820" alt="AI-assisted research for new Solana tokens. Pump.fun launches, tracked in real time. Filters rugs, whales, and manipulation. ML probabilities plus a GPT second opinion. Dashboard and Telegram. Never a trading bot." src="https://readme-typing-svg.demolab.com?font=Fira+Code&amp;weight=600&amp;size=22&amp;duration=3600&amp;pause=700&amp;color=6C2BD9&amp;center=true&amp;vCenter=true&amp;width=820&amp;height=48&amp;lines=AI-assisted+research+for+new+Solana+tokens;Pump.fun+launches%2C+tracked+in+real+time;Filters+rugs%2C+whales%2C+and+manipulation;ML+probabilities+plus+a+GPT+second+opinion;Dashboard+and+Telegram.+Never+a+trading+bot." />
+  <source media="(prefers-color-scheme: dark)" srcset="https://capsule-render.vercel.app/api?type=venom&amp;color=0:9945FF,100:14F195&amp;height=210&amp;section=header&amp;text=SolHunter&amp;fontSize=50&amp;fontColor=FFFFFF&amp;animation=fadeIn&amp;fontAlignY=34&amp;desc=AI-assisted%20Solana%20token%20research%20%C2%B7%20Pump.fun%20first&amp;descAlignY=64&amp;descAlign=50&amp;descSize=16" />
+  <source media="(prefers-color-scheme: light)" srcset="https://capsule-render.vercel.app/api?type=venom&amp;color=0:9945FF,100:14F195&amp;height=210&amp;section=header&amp;text=SolHunter&amp;fontSize=50&amp;fontColor=1A1028&amp;animation=fadeIn&amp;fontAlignY=34&amp;desc=AI-assisted%20Solana%20token%20research%20%C2%B7%20Pump.fun%20first&amp;descAlignY=64&amp;descAlign=50&amp;descSize=16" />
+  <img width="100%" alt="SolHunter — AI-assisted Solana token research, Pump.fun first" src="https://capsule-render.vercel.app/api?type=venom&amp;color=0:9945FF,100:14F195&amp;height=210&amp;section=header&amp;text=SolHunter&amp;fontSize=50&amp;fontColor=1A1028&amp;animation=fadeIn&amp;fontAlignY=34&amp;desc=AI-assisted%20Solana%20token%20research%20%C2%B7%20Pump.fun%20first&amp;descAlignY=64&amp;descAlign=50&amp;descSize=16" />
 </picture>
 
-*A 24/7 research engine for newly launched Solana tokens. It ranks a short list. It does not trade.*
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://readme-typing-svg.demolab.com?font=Fira+Code&amp;weight=600&amp;size=22&amp;duration=3600&amp;pause=700&amp;color=14F195&amp;center=true&amp;vCenter=true&amp;width=820&amp;height=48&amp;lines=AI-assisted+research+for+new+Solana+tokens;Pump.fun+launches%2C+tracked+in+real+time;Filters+rugs%2C+whales%2C+and+manipulation;ML+probabilities+plus+a+GPT+second+opinion;Dashboard+and+Telegram.+Never+a+trading+bot." />
+  <source media="(prefers-color-scheme: light)" srcset="https://readme-typing-svg.demolab.com?font=Fira+Code&amp;weight=600&amp;size=22&amp;duration=3600&amp;pause=700&amp;color=9945FF&amp;center=true&amp;vCenter=true&amp;width=820&amp;height=48&amp;lines=AI-assisted+research+for+new+Solana+tokens;Pump.fun+launches%2C+tracked+in+real+time;Filters+rugs%2C+whales%2C+and+manipulation;ML+probabilities+plus+a+GPT+second+opinion;Dashboard+and+Telegram.+Never+a+trading+bot." />
+  <img width="820" alt="AI-assisted research for new Solana tokens. Pump.fun launches, tracked in real time. Filters rugs, whales, and manipulation. ML probabilities plus a GPT second opinion. Dashboard and Telegram. Never a trading bot." src="https://readme-typing-svg.demolab.com?font=Fira+Code&amp;weight=600&amp;size=22&amp;duration=3600&amp;pause=700&amp;color=9945FF&amp;center=true&amp;vCenter=true&amp;width=820&amp;height=48&amp;lines=AI-assisted+research+for+new+Solana+tokens;Pump.fun+launches%2C+tracked+in+real+time;Filters+rugs%2C+whales%2C+and+manipulation;ML+probabilities+plus+a+GPT+second+opinion;Dashboard+and+Telegram.+Never+a+trading+bot." />
+</picture>
 
 <br/>
 
-<img alt="Decision support only" src="https://img.shields.io/badge/decision_support_only-FFB703?style=for-the-badge&amp;labelColor=6C2BD9"/>
-<img alt="Pump.fun first" src="https://img.shields.io/badge/Pump.fun_first-FF2E93?style=for-the-badge"/>
-<img alt="Does not trade" src="https://img.shields.io/badge/does_not_trade-6C2BD9?style=for-the-badge"/>
-<img alt="Solana" src="https://img.shields.io/badge/Solana-9945FF?style=for-the-badge&amp;logo=solana&amp;logoColor=white"/>
+<img alt="Decision support only" src="https://img.shields.io/badge/-decision%20support%20only-9945FF?style=flat-square&amp;labelColor=14F195"/>
+<img alt="Pump.fun first" src="https://img.shields.io/badge/-Pump.fun%20first-0d1117?style=flat-square&amp;labelColor=9945FF"/>
+<img alt="Does not trade" src="https://img.shields.io/badge/-does%20not%20trade-9945FF?style=flat-square&amp;labelColor=14F195"/>
+<img alt="Solana" src="https://img.shields.io/badge/-Solana-0d1117?style=flat-square&amp;labelColor=9945FF&amp;logo=solana&amp;logoColor=14F195"/>
 
 <br/>
 
-<img alt="Python 3.12" src="https://img.shields.io/badge/Python_3.12-3776AB?style=for-the-badge&amp;logo=python&amp;logoColor=white"/>
-<img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&amp;logo=fastapi&amp;logoColor=white"/>
-<img alt="React 18" src="https://img.shields.io/badge/React_18-61DAFB?style=for-the-badge&amp;logo=react&amp;logoColor=1A1024"/>
-<img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&amp;logo=typescript&amp;logoColor=white"/>
-<img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&amp;logo=postgresql&amp;logoColor=white"/>
-<img alt="Redis" src="https://img.shields.io/badge/Redis-FF4438?style=for-the-badge&amp;logo=redis&amp;logoColor=white"/>
+<img alt="Python 3.12" src="https://img.shields.io/badge/-Python%203.12-9945FF?style=flat-square&amp;labelColor=14F195&amp;logo=python&amp;logoColor=0d1117"/>
+<img alt="FastAPI" src="https://img.shields.io/badge/-FastAPI-9945FF?style=flat-square&amp;labelColor=14F195&amp;logo=fastapi&amp;logoColor=0d1117"/>
+<img alt="React 18" src="https://img.shields.io/badge/-React%2018-9945FF?style=flat-square&amp;labelColor=14F195&amp;logo=react&amp;logoColor=0d1117"/>
+<img alt="TypeScript" src="https://img.shields.io/badge/-TypeScript-9945FF?style=flat-square&amp;labelColor=14F195&amp;logo=typescript&amp;logoColor=0d1117"/>
+<img alt="PostgreSQL" src="https://img.shields.io/badge/-PostgreSQL-9945FF?style=flat-square&amp;labelColor=14F195&amp;logo=postgresql&amp;logoColor=0d1117"/>
+<img alt="Redis" src="https://img.shields.io/badge/-Redis-9945FF?style=flat-square&amp;labelColor=14F195&amp;logo=redis&amp;logoColor=0d1117"/>
 
 <br/>
 
-<img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&amp;logo=docker&amp;logoColor=white"/>
-<img alt="Railway" src="https://img.shields.io/badge/Railway-6C2BD9?style=for-the-badge&amp;logo=railway&amp;logoColor=white"/>
-<img alt="Telegram alerts" src="https://img.shields.io/badge/Telegram_alerts-FF2E93?style=for-the-badge&amp;logo=telegram&amp;logoColor=white"/>
-<img alt="XGBoost" src="https://img.shields.io/badge/XGBoost-FFB703?style=for-the-badge&amp;labelColor=1A1024"/>
-<img alt="OpenAI" src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&amp;logo=openai&amp;logoColor=white"/>
-
-<br/>
-
-<a href="#overview">Overview</a> ·
-<a href="#key-features">Features</a> ·
-<a href="#tech-stack">Stack</a> ·
-<a href="#getting-started">Getting started</a> ·
-<a href="#configuration">Configuration</a> ·
-<a href="#usage">Usage</a> ·
-<a href="#project-structure">Structure</a> ·
-<a href="#documentation">Docs</a>
+<img alt="Docker" src="https://img.shields.io/badge/-Docker-9945FF?style=flat-square&amp;labelColor=14F195&amp;logo=docker&amp;logoColor=0d1117"/>
+<img alt="Railway" src="https://img.shields.io/badge/-Railway-9945FF?style=flat-square&amp;labelColor=14F195&amp;logo=railway&amp;logoColor=0d1117"/>
+<img alt="Telegram alerts" src="https://img.shields.io/badge/-Telegram%20alerts-9945FF?style=flat-square&amp;labelColor=14F195&amp;logo=telegram&amp;logoColor=0d1117"/>
+<img alt="XGBoost" src="https://img.shields.io/badge/-XGBoost-9945FF?style=flat-square&amp;labelColor=14F195"/>
+<img alt="OpenAI" src="https://img.shields.io/badge/-OpenAI-9945FF?style=flat-square&amp;labelColor=14F195&amp;logo=openai&amp;logoColor=0d1117"/>
 
 </div>
 
+# SolHunter
+
+A 24/7 research engine for newly launched Solana tokens. It ranks a short list. It does not trade.
+
 > **Decision support only. Not a trading bot.** SolHunter never holds keys, signs transactions, or trades. A day with zero candidates is a normal outcome.
 
-<a id="overview"></a>
+`jump` [`01 signal`](#signal) · [`02 manifest`](#manifest) · [`03 trace`](#trace) · [`04 rules`](#rules) · [`05 uplink`](#uplink) · [`06 registers`](#registers) · [`07 console`](#console) · [`08 tree`](#tree) · [`09 manuals`](#manuals)
 
-## 🔭 Overview
+<a id="signal"></a>
+
+## 01 · signal
 
 SolHunter is an AI-assisted research engine for newly launched Solana tokens, **Pump.fun first**. It is meant to run 24/7 on [Railway](https://railway.app) as a **single service**: one container serves the API, the built-in web dashboard, and the scanner.
 
@@ -59,33 +56,90 @@ It discovers launches in real time, filters out scams, rugs, and manipulation, a
 
 Paper trading and a manual journal live in the dashboard as research notes. Position sizes shown there are reference maths. The system does not send them.
 
-<a id="key-features"></a>
+<a id="manifest"></a>
 
-## ⚡ Key features
+## 02 · manifest
 
-| | |
+| layer | in this image |
 | --- | --- |
-| **Live discovery** | PumpPortal WebSocket for new Pump.fun tokens, with bounded trade subscriptions and reconnect. |
-| **Market data** | DexScreener for migrated pools, token profiles and boosts, and the SOL price. Public Solana RPC is the fallback when Helius is unset. |
-| **On-chain enrichment** | Budgeted Helius calls for holder distribution, creator history, and funders. Without a key, the scanner keeps stream-derived estimates and lowers confidence. |
-| **Lifecycle-aware filters** | A two-minute-old launch is not judged like a day-old token. Age-scaled limits, a **screening** status, and hard failures that override momentum, whales, and GPT. |
-| **Growth tracking** | After the live window, survivors are re-checked (about 30 minutes to 7 days). Strong, liquid growers go back into real-time tracking. |
-| **Whale engine** | Eight signals, including accumulation, distribution, exit warning, insider selling, coordinated buying, and smart-money consensus. |
-| **Machine learning** | XGBoost models for rug risk, breakout, and expected return. Walk-forward validation. **Experimental until enough labelled samples exist.** |
-| **GPT analyst** | Structured verdict on candidates above the score bar. Spend limits, cache, and no silent model substitution. |
-| **Alerts** | Optional Telegram alerts with cooldowns, an hourly cap, and urgent warnings. |
-| **Dashboard** | React app served by the API at `/`, with live WebSocket updates. Every figure is tagged **verified**, **estimate**, or **prediction**. |
-| **Wallet tracker** | Follow wallets and see their Pump.fun / PumpSwap trades. Telegram alerts are optional. A buy can start live tracking so that token runs through the same pipeline. |
-| **Explainability** | Every rejection has a reason. Every number has a source. |
+| Language | Python 3.12 (`requires-python >= 3.12`) |
+| API | FastAPI, Uvicorn, Pydantic, SQLAlchemy 2 (async), asyncpg, Alembic |
+| Dashboard | React 18, TypeScript, Vite, Recharts. Node 20.19 or newer (the image builds with Node 22) |
+| Data | PostgreSQL 16, Redis 7 |
+| ML | XGBoost (CPU wheel), scikit-learn, NumPy, joblib |
+| Providers | PumpPortal, DexScreener, Helius, OpenAI, Telegram |
+| Runtime | Docker (one image, `SERVICE_ROLE=all\|api\|scanner`), Railway |
+
+<a id="trace"></a>
+
+## 03 · trace
+
+```mermaid
+flowchart TD
+  A["discovery"] --> B["real-time tracking"]
+  B --> C["snapshots at 1 / 3 / 5 / 10 / 15 min"]
+  C --> D["cheap safety filters"]
+  D --> E["budgeted enrichment"]
+  E --> F["whale engine"]
+  F --> G["ML, experimental until validated"]
+  G --> H["full 10-stage pipeline"]
+  H --> I["weighted ranking with penalties and confidence"]
+  I --> J["GPT structured analysis, spend-limited"]
+  J --> K["Telegram alert"]
+  K --> L["outcome labelling"]
+  L --> M["periodic retraining"]
+  classDef sol fill:#9945FF,stroke:#14F195,color:#ffffff
+  classDef mint fill:#14F195,stroke:#9945FF,color:#14121c
+  class A,C,E,G,I,K,M sol
+  class B,D,F,H,J,L mint
+```
+
+```text
+discovery → real-time tracking → snapshots at 1/3/5/10/15 min
+→ cheap safety filters → budgeted enrichment (holders, creator history, wallet profiles, clusters)
+→ whale engine → ML (experimental until validated) → full 10-stage pipeline
+→ weighted ranking with penalties and confidence → GPT structured analysis (spend-limited)
+→ Telegram alert → outcome labelling → periodic retraining
+```
+
+> Hard failures override momentum, whales, and GPT. Every rejection has a reason. Every number has a source.
+
+| phase | age | what happens |
+| --- | --- | --- |
+| **Launch** | 0–30 min | Real-time tracking. Limits scale with age. Soft misses stay in screening. Hard failures stop the token. |
+| **Survival** | 30 min–24 h | Live tracking ends after `SCANNER_TRACK_DURATION_MINUTES` (default 90). The growth tracker re-checks with DexScreener. A strong score plus enough liquidity puts the token back on the live pipeline. |
+| **Established** | 1–7 days | Same growth checks, tighter concentration limits. The 24-hour labels matter most. After 7 days the token is archived. |
+| **Dead / archived** | — | No liquidity and no volume, a hard failure, or too old. |
+
+Discovery is not only forward-looking. Migrations of tokens the scanner never saw are tracked, and DexScreener profiles and boosts are polled so a token launched before the process started can still be found.
+
+<a id="rules"></a>
+
+## 04 · rules
+
+|  | call | behaviour |
+| --- | --- | --- |
+| 🟣 | **Live discovery** | PumpPortal WebSocket for new Pump.fun tokens, with bounded trade subscriptions and reconnect. |
+| 🟢 | **Market data** | DexScreener for migrated pools, token profiles and boosts, and the SOL price. Public Solana RPC is the fallback when Helius is unset. |
+| 🟣 | **On-chain enrichment** | Budgeted Helius calls for holder distribution, creator history, and funders. Without a key, the scanner keeps stream-derived estimates and lowers confidence. |
+| 🟢 | **Lifecycle-aware filters** | A two-minute-old launch is not judged like a day-old token. Age-scaled limits, a **screening** status, and hard failures that override momentum, whales, and GPT. |
+| 🟣 | **Growth tracking** | After the live window, survivors are re-checked (about 30 minutes to 7 days). Strong, liquid growers go back into real-time tracking. |
+| 🟢 | **Whale engine** | Eight signals, including accumulation, distribution, exit warning, insider selling, coordinated buying, and smart-money consensus. |
+| 🟣 | **Machine learning** | XGBoost models for rug risk, breakout, and expected return. Walk-forward validation. **Experimental until enough labelled samples exist.** |
+| 🟢 | **GPT analyst** | Structured verdict on candidates above the score bar. Spend limits, cache, and no silent model substitution. |
+| 🟣 | **Alerts** | Optional Telegram alerts with cooldowns, an hourly cap, and urgent warnings. |
+| 🟢 | **Dashboard** | React app served by the API at `/`, with live WebSocket updates. Every figure is tagged **verified**, **estimate**, or **prediction**. |
+| 🟣 | **Wallet tracker** | Follow wallets and see their Pump.fun / PumpSwap trades. Telegram alerts are optional. A buy can start live tracking so that token runs through the same pipeline. |
+| 🟢 | **Explainability** | Every rejection has a reason. Every number has a source. |
 
 <details>
-<summary><b>The ten filter stages</b></summary>
+<summary><code>filters.stages</code> — the ten filter stages</summary>
 
 <br/>
 
 A cheap pass runs on stream data before any paid enrichment: data validation, developer, holders, liquidity, buyer quality, trading pressure, momentum, and manipulation. Relationships and the ML stage run with the full pipeline. When Helius holders, creator history, or wallet profiles are present, the earlier stages use them and raise confidence.
 
-| # | Stage | What it looks at |
+| # | stage | what it looks at |
 | --- | --- | --- |
 | 1 | Data validation | Mint, price, age, trade count, stale or contradictory inputs |
 | 2 | Developer | Creator sells, prior rugs, dev holding |
@@ -102,40 +156,27 @@ Hard safety failures are final: liquidity pull, developer dump, a launch bundle 
 
 </details>
 
-<a id="tech-stack"></a>
+<a id="uplink"></a>
 
-## 🧰 Tech stack
-
-| Layer | What this repo uses |
-| --- | --- |
-| Language | Python 3.12 (`requires-python >= 3.12`) |
-| API | FastAPI, Uvicorn, Pydantic, SQLAlchemy 2 (async), asyncpg, Alembic |
-| Dashboard | React 18, TypeScript, Vite, Recharts. Node 20.19 or newer (the image builds with Node 22) |
-| Data | PostgreSQL 16, Redis 7 |
-| ML | XGBoost (CPU wheel), scikit-learn, NumPy, joblib |
-| Providers | PumpPortal, DexScreener, Helius, OpenAI, Telegram |
-| Runtime | Docker (one image, `SERVICE_ROLE=all\|api\|scanner`), Railway |
-
-<a id="getting-started"></a>
-
-## 🚀 Getting started
+## 05 · uplink
 
 SolHunter is three Railway services: **this app** (one container: API + dashboard + scanner) + **Railway PostgreSQL** + **Railway Redis**.
+
+| SolHunter | Railway PostgreSQL | Railway Redis |
+| --- | --- | --- |
+| One container: API + dashboard + scanner | Railway PostgreSQL | Railway Redis. The scanner holds its leader lock here |
 
 Follow **[docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md)**. It covers where to get every key (Helius, OpenAI, Telegram), the Railway clicks and variables, and how to verify the deploy. Then open your Railway URL and log in with the `PASSWORD` you chose.
 
 Keep the SolHunter service at **one replica**. The scanner takes a Redis leader lock and must run once. Health check path: `/health` (the first boot runs migrations; the deployment doc uses a 300 s timeout). `scripts/start.sh` is the container entrypoint.
 
-| `SERVICE_ROLE` | What that process runs |
+| `SERVICE_ROLE` | what that process runs |
 | --- | --- |
 | `all` (default) | API + dashboard + scanner. This is the Railway setup. |
 | `api` | API + dashboard only |
 | `scanner` | Scanner worker only. Leave migrations to the API (`RUN_MIGRATIONS_ON_START=false` on a split scanner). |
 
-<details>
-<summary><b>Local development</b></summary>
-
-<br/>
+### local shell
 
 Python 3.12, Node 20.19+, Docker (for Postgres and Redis).
 
@@ -161,10 +202,8 @@ Manual helpers, if you are not letting the process migrate or train itself:
 ./scripts/train_models.sh     # python -m backend.ml.train
 ```
 
-</details>
-
 <details>
-<summary><b>Dashboard package only</b></summary>
+<summary><code>web/</code> — dashboard package only</summary>
 
 <br/>
 
@@ -179,9 +218,9 @@ VITE_API_BASE=http://localhost:8080 npm run dev       # Vite dev server, API els
 
 </details>
 
-<a id="configuration"></a>
+<a id="registers"></a>
 
-## ⚙️ Configuration
+## 06 · registers
 
 Copy [`.env.example`](.env.example) to `.env` for local work. **Never commit a real `.env`.** On Railway, set the same names as service variables. Defaults, which service needs each name, and what it does are in **[docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)**.
 
@@ -189,7 +228,7 @@ Names only below. No values.
 
 Runtime thresholds in the `FILTER_*`, `RANK_*`, `WHALE_*`, `SCANNER_*`, `TELEGRAM_*`, `EXEC_*`, `RISK_*`, `ML_*`, `AI_*`, and `GROWTH_*` groups can also be changed from the dashboard Settings page (`PUT /api/v1/settings`, admin key). Environment values are the defaults. Database overrides win.
 
-| Name | Needed for | Without it |
+| name | needed for | without it |
 | --- | --- | --- |
 | `PASSWORD` | Dashboard login, and settings access | In production the API refuses requests |
 | `HELIUS_API_KEY` | Holder distribution, creator history, funders | Stream-based estimates only, lower confidence |
@@ -199,7 +238,7 @@ Runtime thresholds in the `FILTER_*`, `RANK_*`, `WHALE_*`, `SCANNER_*`, `TELEGRA
 `AI_MODEL` is verified at start (`AI_VERIFY_MODEL_ON_START`). If that model is unavailable, GPT analysis is disabled and the dashboard says so. SolHunter does not swap in a different model. Set `AI_INPUT_COST_PER_1M_USD` and `AI_OUTPUT_COST_PER_1M_USD` to the current price of the model you configured so spend limits and the cost page stay honest.
 
 <details>
-<summary><b>Environment variable names</b></summary>
+<summary><code>env.names</code> — every variable name</summary>
 
 <br/>
 
@@ -225,32 +264,15 @@ Runtime thresholds in the `FILTER_*`, `RANK_*`, `WHALE_*`, `SCANNER_*`, `TELEGRA
 
 </details>
 
-<a id="usage"></a>
+<a id="console"></a>
 
-## 📡 Usage
+## 07 · console
 
 Open the Railway URL (or `http://localhost:8080` locally). Sign in with `PASSWORD`. Optional `API_KEYS` are extra read-only keys; optional `API_ADMIN_KEYS` can change settings. The password already covers both. The key stays in this browser's `localStorage` only. The API base defaults to the page origin. An override sits under **Advanced** on the login screen and in Settings.
 
 The scanner, with `SERVICE_ROLE=all`, starts in the same process. The sidebar shows a live badge when the WebSocket is receiving scanner events.
 
-```
-discovery → real-time tracking → snapshots at 1/3/5/10/15 min
-→ cheap safety filters → budgeted enrichment (holders, creator history, wallet profiles, clusters)
-→ whale engine → ML (experimental until validated) → full 10-stage pipeline
-→ weighted ranking with penalties and confidence → GPT structured analysis (spend-limited)
-→ Telegram alert → outcome labelling → periodic retraining
-```
-
-| Phase | Age | What happens |
-| --- | --- | --- |
-| **Launch** | 0–30 min | Real-time tracking. Limits scale with age. Soft misses stay in screening. Hard failures stop the token. |
-| **Survival** | 30 min–24 h | Live tracking ends after `SCANNER_TRACK_DURATION_MINUTES` (default 90). The growth tracker re-checks with DexScreener. A strong score plus enough liquidity puts the token back on the live pipeline. |
-| **Established** | 1–7 days | Same growth checks, tighter concentration limits. The 24-hour labels matter most. After 7 days the token is archived. |
-| **Dead / archived** | — | No liquidity and no volume, a hard failure, or too old. |
-
-Discovery is not only forward-looking. Migrations of tokens the scanner never saw are tracked, and DexScreener profiles and boosts are polled so a token launched before the process started can still be found.
-
-| Page | What it is for |
+| page | what it is for |
 | --- | --- |
 | Dashboard | Scanner heartbeat, provider health, and the current short list |
 | Candidates | Ranked candidates, plus a detail view with charts |
@@ -269,11 +291,11 @@ Outcome labels used for training include the launch-window **+10 / +15 / +20 %**
 
 GPT recommendations are `STRONG_CANDIDATE`, `WATCHLIST`, `HIGH_RISK`, `REJECT`, and `INSUFFICIENT_DATA`. A `REJECT` or `HIGH_RISK` verdict downgrades a candidate to the watchlist. The alert waits for the verdict when GPT is enabled and within budget.
 
-<a id="project-structure"></a>
+<a id="tree"></a>
 
-## 🗂️ Project structure
+## 08 · tree
 
-```
+```text
 backend/    FastAPI API + dashboard server + scanner worker (Python 3.12, async)
 web/        Browser dashboard (React + TypeScript), built into the image by the Dockerfile
 migrations/ Alembic migrations
@@ -283,7 +305,7 @@ Dockerfile  One image for every role
 docker/     docker-compose.yml — local stack
 ```
 
-| Package | Responsibility |
+| package | responsibility |
 | --- | --- |
 | `config` | Settings and structured logs with secret scrubbing |
 | `providers` | PumpPortal, DexScreener, Helius, SOL price. Rate limits and credit budgets |
@@ -297,11 +319,11 @@ docker/     docker-compose.yml — local stack
 | `notifications` | Telegram |
 | `api` | REST, WebSocket, and the built `web/dist` dashboard |
 
-<a id="documentation"></a>
+<a id="manuals"></a>
 
-## 📚 Documentation
+## 09 · manuals
 
-| Doc | Content |
+| doc | content |
 | --- | --- |
 | [`docs/RAILWAY_DEPLOYMENT.md`](docs/RAILWAY_DEPLOYMENT.md) | Keys, Railway setup, variables, verification, troubleshooting |
 | [`docs/ENVIRONMENT_VARIABLES.md`](docs/ENVIRONMENT_VARIABLES.md) | Every variable with defaults |
@@ -316,13 +338,11 @@ docker/     docker-compose.yml — local stack
 
 <a id="disclaimer"></a>
 
-## ⚠️ Disclaimer
+## 10 · disclaimer
 
-Research targets such as +10 / +15 / +20 %, and the 24-hour +50 / +100 % labels, are scenarios, not promises. Memecoin launches are extremely risky; most lose value. Nothing here is financial advice.
+> Research targets such as +10 / +15 / +20 %, and the 24-hour +50 / +100 % labels, are scenarios, not promises. Memecoin launches are extremely risky; most lose value. Nothing here is financial advice.
 
-<a id="credits"></a>
-
-## 💜 Credits
+## credits
 
 Built by **[Shahriar Ahmed](https://github.com/fr-ost)**, Co-Founder & COO of **[Unique Labs](https://www.uniquelabs.org)**.
 
@@ -330,6 +350,6 @@ Built by **[Shahriar Ahmed](https://github.com/fr-ost)**, Co-Founder & COO of **
 
 <div align="center">
 
-<img width="100%" alt="Footer wave" src="https://capsule-render.vercel.app/api?type=waving&amp;color=0:FFB703,50:FF2E93,100:6C2BD9&amp;height=120&amp;section=footer"/>
+<img width="100%" alt="SolHunter footer — teal to purple venom banner" src="https://capsule-render.vercel.app/api?type=venom&amp;color=0:14F195,100:9945FF&amp;height=120&amp;section=footer"/>
 
 </div>
